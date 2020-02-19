@@ -1,16 +1,16 @@
 //
-// <#Module Name#>.Build.cs
+// PlaybackCtrl.Build.cs
 //
-//  Generated on <#generation date#>
+//  Generated on February 19 2020
 //  Template created by Peter Gusev on 27 January 2020.
 //  Copyright 2013-2019 Regents of the University of California
 //
 
 using UnrealBuildTool;
 
-public class <#Module Name#> : ModuleRules
+public class PlaybackCtrl : ModuleRules
 {
-	public <#Module Name#>(ReadOnlyTargetRules Target) : base(Target)
+	public PlaybackCtrl(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
@@ -47,7 +47,7 @@ public class <#Module Name#> : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"deps<#Module Name#>"
+				"depsPlaybackCtrl"
 				// ... add private dependencies that you statically link with here ...
 			}
 			);
