@@ -32,6 +32,9 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 #include "DDBase.h"
+#include "OscDataElemStruct.h"
+
+class OscListener;
 
 class FPlaybackCtrlModule : public FDDBaseModule
 {
@@ -40,4 +43,9 @@ public:
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
+    
+    void onOscReceived(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp);
+    
+private:
+    OscListener *listener_;
 };

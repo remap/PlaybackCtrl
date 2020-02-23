@@ -47,7 +47,8 @@ public class PlaybackCtrl : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"depsPlaybackCtrl"
+				"depsPlaybackCtrl",
+                "OSC"
 				// ... add private dependencies that you statically link with here ...
 			}
 			);

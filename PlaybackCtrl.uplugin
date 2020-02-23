@@ -30,7 +30,11 @@
 		{
 			"Name": "DDTools",
 			"Enabled": true
-		}
+		},
+        {
+            "Name": "OSC",
+            "Enabled": true
+        }
 	],
 	"PreBuildSteps" : {
 		"Mac": [
