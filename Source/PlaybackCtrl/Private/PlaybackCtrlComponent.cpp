@@ -21,16 +21,21 @@ void UPlaybackCtrlComponent::OnRegister()
 {
     DLOG_TRACE("Start OnRegister");
     Super::OnRegister();
-//    FPlaybackCtrlModule* mod = FPlaybackCtrlModule::GetSharedInstance();
-//    if (mod)
-//        mod->RegisterReceiver(&_listener);
-//    else
-//        DLOG_TRACE("no module");
+    FPlaybackCtrlModule* mod = FPlaybackCtrlModule::GetSharedInstance();
+    if (mod)
+        mod->RegisterReceiver(&listener_);
+    else
+        DLOG_TRACE("no module");
     
 }
 
 void UPlaybackCtrlComponent::OnUnregister()
 {
+    FPlaybackCtrlModule* mod = FPlaybackCtrlModule::GetSharedInstance();
+    if (mod)
+        mod->UnregisterReceiver(&listener_);
+    else
+        DLOG_TRACE("no module");
     Super::OnUnregister();
 }
 

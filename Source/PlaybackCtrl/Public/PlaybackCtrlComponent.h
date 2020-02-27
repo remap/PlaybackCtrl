@@ -9,8 +9,13 @@
 
 #include "PlaybackCtrlComponent.generated.h"
 
+
 // declare the OnOscReceived event type
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FComponentOscReceivedSignature, const FName &, Address, const TArray<FOscDataElemStruct> &, Data, const FString &, SenderIp);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FComponentCueReceivedSignature, const FName &, Address, const TArray<FOscDataElemStruct> &, Data, const FString &, SenderIp);
+
+//DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FComponentCueReceivedSignature, const TMap<FString, FString> &, AddressDict, const TMap<FString, FString> &, DataDict, const FString &, SenderIp);
+
+//DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FComponentCueReceivedSignature, const TArray<FString> &, Address, const TArray<FString> &, Data, const FString &, SenderIp);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PLAYBACKCTRL_API UPlaybackCtrlComponent : public UActorComponent
@@ -20,10 +25,13 @@ class PLAYBACKCTRL_API UPlaybackCtrlComponent : public UActorComponent
 public:
 
 	UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
-    FString AddressFilter;
+    FString DepartmentFilter;
+    
+    UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
+    FString BuildFilter;
 
     UPROPERTY(BlueprintAssignable, Category=PlaybackCrtl)
-    FComponentOscReceivedSignature OnOscReceived;
+    FComponentCueReceivedSignature OnCueReceived;
 
 public:
 
@@ -32,15 +40,20 @@ public:
     /// Hot reload constructor
     UPlaybackCtrlComponent(FVTableHelper &helper);
 
-    const FString & GetAddressFilter() const
+    const FString & GetDepartmentFilter() const
     {
-        return AddressFilter;
+        return DepartmentFilter;
     }
 
-    void SendEvent(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp)
-    {
-        OnOscReceived.Broadcast(Address, Data, SenderIp);
-    }
+    const FString & GetBuildFilter() const
+       {
+           return BuildFilter;
+       }
+    
+     void SendEvent(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp)
+       {
+           OnCueReceived.Broadcast(Address, Data, SenderIp);
+       }
 
 private:
     void OnRegister() override;

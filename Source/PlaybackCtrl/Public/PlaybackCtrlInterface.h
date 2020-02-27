@@ -7,7 +7,8 @@
 struct PLAYBACKCTRL_API IPlaybackCtrlInterface
 {
     virtual ~IPlaybackCtrlInterface()  {}
-    virtual const FString & GetAddressFilter() const = 0;
+    virtual const FString & GetDepartmentFilter() const = 0;
+    virtual const FString & GetBuildFilter() const = 0;
     virtual void SendEvent(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp) = 0;
 };
 
@@ -22,13 +23,18 @@ struct PLAYBACKCTRL_API BasicCueReceiver : IPlaybackCtrlInterface
     {
     }
 
-    const FString & GetAddressFilter() const final
+    const FString & GetDepartmentFilter() const final
     {
-        return _impl->GetAddressFilter();
+        return _impl->GetDepartmentFilter();
     }
+    
+    const FString & GetBuildFilter() const final
+       {
+           return _impl->GetBuildFilter();
+       }
 
-    void SendEvent(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp) final
-    {
-        _impl->SendEvent(Address, Data, SenderIp);
-    }
+   void SendEvent(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp) final
+   {
+       _impl->SendEvent(Address, Data, SenderIp);
+   }
 };
