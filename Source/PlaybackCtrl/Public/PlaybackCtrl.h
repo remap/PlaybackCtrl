@@ -35,17 +35,33 @@
 #include "OscDataElemStruct.h"
 
 class OscListener;
+struct IPlaybackCtrlInterface; //added for component registration
 
 class FPlaybackCtrlModule : public FDDBaseModule
 {
 public:
-
+    static FPlaybackCtrlModule* GetSharedInstance();
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
+    virtual void onPostWorldInitialization(UWorld *world) override;
     
     void onOscReceived(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp);
     
+    // Allow components to register with the module
+    
+    /// Add the receiver in the listeners list
+    void RegisterReceiver(IPlaybackCtrlInterface * receiver);
+
+    /// Remove the receiver in the listeners list
+    void UnregisterReceiver(IPlaybackCtrlInterface * receiver);
+
 private:
     OscListener *listener_;
+    // added for component register
+    TArray<IPlaybackCtrlInterface *> _receivers;
+    /// Protects _receivers
+    FCriticalSection _receiversMutex;
+    
+    void oscDispatcherRegister(class UWorld* world);
 };

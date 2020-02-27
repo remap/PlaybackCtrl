@@ -1,34 +1,38 @@
 // Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "PlaybackCtrlComponent.h"
+#include "PlaybackCtrl.h"
 
-// Sets default values for this component's properties
 UPlaybackCtrlComponent::UPlaybackCtrlComponent()
+    : listener_(this)
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
+    DLOG_TRACE("Start PlaybackCtrlComponent");
+}
 
-	// ...
+UPlaybackCtrlComponent::UPlaybackCtrlComponent(FVTableHelper & helper)
+    : listener_(this)
+{
+    // Does not need to be a valid object.
+    DLOG_TRACE("Start PlaybackCtrlComponent helper");
+
 }
 
 
-// Called when the game starts
-void UPlaybackCtrlComponent::BeginPlay()
+void UPlaybackCtrlComponent::OnRegister()
 {
-	Super::BeginPlay();
+    DLOG_TRACE("Start OnRegister");
+    Super::OnRegister();
+//    FPlaybackCtrlModule* mod = FPlaybackCtrlModule::GetSharedInstance();
+//    if (mod)
+//        mod->RegisterReceiver(&_listener);
+//    else
+//        DLOG_TRACE("no module");
+    
+}
 
-	// ...
-	
+void UPlaybackCtrlComponent::OnUnregister()
+{
+    Super::OnUnregister();
 }
 
 
-// Called every frame
-void UPlaybackCtrlComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
-}
 

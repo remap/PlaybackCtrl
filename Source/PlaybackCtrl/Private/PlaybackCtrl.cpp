@@ -9,6 +9,7 @@
 #include "PlaybackCtrl.h"
 #include "logging.hpp"
 #include "git-describe.h"
+#include <mutex>
 
 #define STRINGIZE_VERSION(v) STRINGIZE_TOKEN(v)
 #define STRINGIZE_TOKEN(t) #t
@@ -18,12 +19,14 @@
 #define LOCTEXT_NAMESPACE "FPlaybackCtrlModule"
 
 #include "OscReceiverInterface.h"
+#include "PlaybackCtrlInterface.h"
 #include "OscDispatcher.h"
 
 using namespace std;
 using namespace std::placeholders;
 
 typedef function<void(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp)> OnOscMessage;
+static FPlaybackCtrlModule* SharedInstance;
 
 class OscListener {
 public:
@@ -55,7 +58,7 @@ private:
 void FPlaybackCtrlModule::StartupModule()
 {
     initModule(MODULE_NAME, PLUGIN_VERSION);
-
+    SharedInstance = this;
     // To log using ReLog plugin, use these macro definitions:
 //     DLOG_PLUGIN_ERROR("Error message");
 //     DLOG_PLUGIN_WARN("Warning message");
@@ -69,41 +72,6 @@ void FPlaybackCtrlModule::StartupModule()
     FModuleStatus oscModuleStatus;
     // force load DDManager module
     IModuleInterface *moduleIface = manager.LoadModule(oscModuleName);
-
-    if (GIsServer)
-     {
-         DLOG_PLUGIN_DEBUG("Server");
-         //GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Server"));
-     }
-     else
-     {
-         DLOG_PLUGIN_DEBUG("Not server");
-         //GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Not server!"));
-     }
-    if (manager.QueryModule(oscModuleName, oscModuleStatus))
-    {
-        bool isLoaded = oscModuleStatus.bIsLoaded;
-                        
-        if (!isLoaded)
-            isLoaded = (nullptr != manager.LoadModule(oscModuleName));
-            
-        if (isLoaded)
-        {
-            if (UOscDispatcher::Get())
-                listener_ = new OscListener(bind(&FPlaybackCtrlModule::onOscReceived, this, _1, _2, _3));
-//                listener_ = new OscListener([](){
-//                    DLOG_DEBUG("hey! callback in lambda");
-//                });
-            else
-                DLOG_PLUGIN_ERROR("OSC dispatcher is NULL");
-        }
-        else
-            DLOG_PLUGIN_ERROR("OSC Module could not be loaded.");
-    }
-    else
-        DLOG_PLUGIN_ERROR("OSC Module could not be found.");
-    
-
 }
 
 void FPlaybackCtrlModule::ShutdownModule()
@@ -136,12 +104,76 @@ void FPlaybackCtrlModule::onOscReceived(const FName & Address, const TArray<FOsc
     {
         DLOG_PLUGIN_DEBUG(TCHAR_TO_UTF8(*Str));
     }
-    
+}
 
+void FPlaybackCtrlModule::onPostWorldInitialization (UWorld *world)
+{
+    static once_flag flag;
+    call_once(flag, [&](){
+        oscDispatcherRegister(world);
+    });
+}
+
+
+// added for components to register
+void FPlaybackCtrlModule::RegisterReceiver(IPlaybackCtrlInterface * receiver)
+{
+    FScopeLock ScopeLock(&_receiversMutex);
+    _receivers.AddUnique(receiver);
+}
+
+void FPlaybackCtrlModule::UnregisterReceiver(IPlaybackCtrlInterface * receiver)
+{
+    FScopeLock ScopeLock(&_receiversMutex);
+    _receivers.Remove(receiver);
+}
+
+FPlaybackCtrlModule* FPlaybackCtrlModule::GetSharedInstance()
+{
+    return SharedInstance;
+}
+
+void FPlaybackCtrlModule::oscDispatcherRegister(UWorld* world)
+{
+    DLOG_PLUGIN_DEBUG("world init plugin debug");
     
+    FName oscModuleName(TEXT("OSC"));
+    FModuleManager &manager = FModuleManager::Get();
+    FModuleStatus oscModuleStatus;
+    // force load DDManager module
+    IModuleInterface *moduleIface = manager.LoadModule(oscModuleName);
+    ENetMode netMode = world->GetNetMode();
+    DLOG_PLUGIN_DEBUG(netMode);
+    if (netMode == NM_ListenServer || netMode == NM_Standalone)
+    {
+        if (manager.QueryModule(oscModuleName, oscModuleStatus))
+        {
+            bool isLoaded = oscModuleStatus.bIsLoaded;
+
+            if (!isLoaded)
+                isLoaded = (nullptr != manager.LoadModule(oscModuleName));
+            if (isLoaded)
+            {
+                if (UOscDispatcher::Get())
+                {
+                    listener_ = new OscListener(bind(&FPlaybackCtrlModule::onOscReceived, this, _1, _2, _3));
+                }
+
+                else
+                    DLOG_PLUGIN_ERROR("OSC dispatcher is NULL");
+                }
+            else
+                DLOG_PLUGIN_ERROR("OSC Module could not be loaded.");
+            }
+        else
+            DLOG_PLUGIN_ERROR("OSC Module could not be found.");
+    }
     
-    
-    
+    if (netMode == NM_Client)
+    {
+        if (listener_)
+            delete listener_;
+    }
 }
 
 #undef LOCTEXT_NAMESPACE
