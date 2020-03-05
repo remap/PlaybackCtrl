@@ -72,6 +72,7 @@ void FPlaybackCtrlModule::StartupModule()
     FModuleStatus oscModuleStatus;
     // force load DDManager module
     IModuleInterface *moduleIface = manager.LoadModule(oscModuleName);
+    TMap<FString, FString> test;
 }
 
 void FPlaybackCtrlModule::ShutdownModule()
@@ -79,6 +80,7 @@ void FPlaybackCtrlModule::ShutdownModule()
     if (listener_)
         delete listener_;
 }
+
 
 void FPlaybackCtrlModule::onOscReceived(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp)
 {
@@ -96,14 +98,17 @@ void FPlaybackCtrlModule::onOscReceived(const FName & Address, const TArray<FOsc
         {
             DLOG_PLUGIN_DEBUG("Message doesn't meet address naming requirements.");
         }
+        else
+        {
+            for(auto receiver : _receivers)
+            {
+                receiver->SendEvent(Address, Data, SenderIp);
+            }
+        }
     }
     else
         DLOG_PLUGIN_DEBUG("Message address is incorrect.");
-    
-    for (auto& Str : addressParts)
-    {
-        DLOG_PLUGIN_DEBUG(TCHAR_TO_UTF8(*Str));
-    }
+
 }
 
 void FPlaybackCtrlModule::onPostWorldInitialization (UWorld *world)
@@ -120,6 +125,8 @@ void FPlaybackCtrlModule::RegisterReceiver(IPlaybackCtrlInterface * receiver)
 {
     FScopeLock ScopeLock(&_receiversMutex);
     _receivers.AddUnique(receiver);
+    UE_LOG(LogTemp, Log, TEXT("added receiver in OnRegister"));
+
 }
 
 void FPlaybackCtrlModule::UnregisterReceiver(IPlaybackCtrlInterface * receiver)
@@ -144,7 +151,7 @@ void FPlaybackCtrlModule::oscDispatcherRegister(UWorld* world)
     IModuleInterface *moduleIface = manager.LoadModule(oscModuleName);
     ENetMode netMode = world->GetNetMode();
     DLOG_PLUGIN_DEBUG(netMode);
-    if (netMode == NM_ListenServer || netMode == NM_Standalone)
+    if (netMode == NM_ListenServer || netMode == NM_DedicatedServer || netMode==NM_Standalone)
     {
         if (manager.QueryModule(oscModuleName, oscModuleStatus))
         {
@@ -168,6 +175,8 @@ void FPlaybackCtrlModule::oscDispatcherRegister(UWorld* world)
         else
             DLOG_PLUGIN_ERROR("OSC Module could not be found.");
     }
+    else
+        DLOG_PLUGIN_ERROR("THIS IS NOT A LISTEN OR DEDICATED SERVER");
     
     if (netMode == NM_Client)
     {

@@ -34,7 +34,9 @@ public class PlaybackCtrl : ModuleRules
 				"Core",
 				"UMG",
 				"DDBase",
-				"DDLog"
+				"DDLog",
+                "LevelSequence",
+                "MovieScene"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
