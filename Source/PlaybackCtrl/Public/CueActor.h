@@ -54,23 +54,41 @@ public:
 
     
     // EVENTS
-    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
-    void OnFadeInStart(float t);
+    UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category=PlaybackCtrl)
+    void OnFadeInStart();
     
-    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
+    UFUNCTION()
+    void OnFadeInStart_Implementation();
+    
+    UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category=PlaybackCtrl)
     void OnFadeInEnd();
     
-    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
-    void OnRunStart(float t);
+    UFUNCTION()
+    void OnFadeInEnd_Implementation();
     
-    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
+    UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category=PlaybackCtrl)
+    void OnRunStart();
+    
+    UFUNCTION()
+    void OnRunStart_Implementation();
+    
+    UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category=PlaybackCtrl)
     void OnRunEnd();
     
-    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
-    void OnFadeOutStart(float t);
+    UFUNCTION()
+    void OnRunEnd_Implementation();
     
-    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
+    UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category=PlaybackCtrl)
+    void OnFadeOutStart();
+    
+    UFUNCTION()
+    void OnFadeOutStart_Implementation();
+    
+    UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category=PlaybackCtrl)
     void OnFadeOutEnd();
+    
+    UFUNCTION()
+    void OnFadeOutEnd_Implementation();
     
     TMap<FString, FString> DataDict_;
     

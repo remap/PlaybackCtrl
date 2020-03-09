@@ -81,7 +81,7 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
                 SequencePlayer->Play();
         }
         else if (theAction == "go")
-            OnFadeInStart(0);
+            OnFadeInStart_Implementation();
     }
     else
     {
@@ -89,49 +89,55 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
     }
 }
 
-void ACueActor::OnFadeInStart_Implementation(float t)
+void ACueActor::OnFadeInStart_Implementation()
 {
+    OnFadeInStart(); //for BP
+    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Fade In Start Implementation"));
     if (GetFadeInSeq())
-        CueStateStart(GetFadeInSeq(), "FadeInLength", "OnFadeInEnd");
+        CueStateStart(GetFadeInSeq(), "FadeInLength", "OnFadeInEnd_Implementation");
     else
-        OnFadeInEnd();
+        OnFadeInEnd_Implementation();
 }
 
 void ACueActor::OnFadeInEnd_Implementation()
 {
-     // Add any fade in end implementation code here-- could be empty
+    OnFadeInEnd(); // for BP
+    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Fade In End Implementation"));
     SequencePlayer = nullptr;
-    OnRunStart(0);
+    OnRunStart_Implementation();
     
 }
 
 
-void ACueActor::OnRunStart_Implementation(float t)
+void ACueActor::OnRunStart_Implementation()
 {
+    OnRunStart(); // for BP
+    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Run Start Implementation"));
     if (GetRunSeq())
-        CueStateStart(GetRunSeq(), "RunLength","OnRunEnd");
+        CueStateStart(GetRunSeq(), "RunLength","OnRunEnd_Implementation");
     else
-        OnRunEnd();
+        OnRunEnd_Implementation();
 }
 
 void ACueActor::OnRunEnd_Implementation()
 {
-     // Add any run end implementation code here-- could be empty
+    OnRunEnd(); // for BP
     SequencePlayer = nullptr;
-    OnFadeOutStart(0);
+    OnFadeOutStart_Implementation();
 }
 
-void ACueActor::OnFadeOutStart_Implementation(float t)
+void ACueActor::OnFadeOutStart_Implementation()
 {
+    OnFadeOutStart(); //for BP
     if (GetFadeOutSeq())
-        CueStateStart(GetFadeOutSeq(), "FadeOutLength","OnFadeOutEnd");
+        CueStateStart(GetFadeOutSeq(), "FadeOutLength","OnFadeOutEnd_Implementation");
     else
         OnFadeOutEnd();
 }
 
 void ACueActor::OnFadeOutEnd_Implementation()
 {
-     // Add any fade out end implementation code here-- could be empty
+    OnFadeOutEnd(); //for BP
 }
 
 void ACueActor::CueStateStart(ULevelSequence* Seq, FString CueStateLength, FName EndCueState)
@@ -150,6 +156,7 @@ void ACueActor::CueStateStart(ULevelSequence* Seq, FString CueStateLength, FName
             
     if (SequencePlayer)
     {
+        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Cue state bind: %s"), *EndCueState.ToString()));
         FScriptDelegate funcDelegate;
         funcDelegate.BindUFunction(this, EndCueState);
         SequencePlayer->OnFinished.AddUnique(funcDelegate);
