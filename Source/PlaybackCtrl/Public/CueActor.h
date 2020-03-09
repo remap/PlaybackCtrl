@@ -1,3 +1,7 @@
+
+
+
+// *****
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
@@ -13,17 +17,22 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FComponentCueRxSignature, const FName &, Address, const TArray<FOscDataElemStruct> &, Data, const FString &, SenderIp);
 
+
 UCLASS(ClassGroup=PlaybackCtrl)
 class PLAYBACKCTRL_API ACueActor : public AActor
 {
-	GENERATED_BODY()
-	
+    GENERATED_BODY()
+    
 public:
     UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
     FString DepartmentFilter;
     
     UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
     FString BuildFilter;
+    
+
+//    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Enum)
+//    EActionEnum ActionEnum;
     
     /** Add your fade in sequence here, if applicable */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlaybackCtrl)
@@ -40,16 +49,35 @@ public:
     UPROPERTY(BlueprintAssignable, Category=PlaybackCrtl)
     FComponentCueRxSignature OnCueRx;
     
-//    UPROPERTY(BlueprintAssignable, Category=PlaybackCrtl)
-//    FOnMovieSceneSequencePlayerEvent OnFinished;
+    UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
+    ULevelSequencePlayer* SequencePlayer;
+
+    
+    // EVENTS
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
+    void OnFadeInStart();
+    
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
+    void OnFadeInEnd();
+    
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
+    void OnRunStart();
     
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
     void OnRunEnd();
     
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
+    void OnFadeOutStart();
+    
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
+    void OnFadeOutEnd();
+    
+    TMap<FString, FString> DataDict_;
+    
 
 public:
-	// Sets default values for this actor's properties
-	ACueActor();
+    // Sets default values for this actor's properties
+    ACueActor();
     
     /// Hot reload constructor
     ACueActor(FVTableHelper & helper);
@@ -74,7 +102,7 @@ public:
         return RunSeq;
     }
     
-    ULevelSequence* & GetFadeoutSeq()
+    ULevelSequence* & GetFadeOutSeq()
     {
         return FadeOutSeq;
     }
@@ -87,11 +115,14 @@ public:
     UFUNCTION()
     void OnCueReceived(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp);
     
+    void CueStateStart(ULevelSequence* Seq, FString CueStateLength, FName EndCueState);
+    
     
     
 protected:
-	void BeginDestroy() override;
+    void BeginDestroy() override;
 
 private:
     BasicCueReceiver<ACueActor> _listener;
 };
+

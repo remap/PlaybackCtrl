@@ -38,9 +38,10 @@ void ACueActor::BeginDestroy()
         mod->UnregisterReceiver(&_listener);
     else
         DLOG_TRACE("no module");
-    
+
     Super::BeginDestroy();
 }
+
 void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp)
 {
     // Parse OSC message
@@ -49,15 +50,16 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
     TArray<FString> addressParts;
     oscAddress.ParseIntoArray(addressParts, TEXT("/"), true);
     TMap<FString, FString> AddressDict;
-    
+
     AddressDict.Add(TEXT("Build"), addressParts[1]);
     AddressDict.Add(TEXT("Department"), addressParts[2]);
-    for (int32 Index = 3; Index < addressParts.Num() -1; ++Index)
-    {
-        AddressDict.Add(TEXT("CueName_") + FString::FromInt(Index), addressParts[Index]);
-    }
+    AddressDict.Add(TEXT("CueName"), addressParts[3]);
+//    for (int32 Index = 3; Index < addressParts.Num() -1; ++Index)
+//    {
+//        AddressDict.Add(TEXT("CueName_") + FString::FromInt(Index), addressParts[Index]);
+//    }
     AddressDict.Add(TEXT("Action"), addressParts.Last());
-    
+
     // Arguments
     TMap<FString, FString> DataDict;
     TArray<FString> d;
@@ -66,33 +68,133 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
         elem.AsStringValue().ToString().ParseIntoArray(d, TEXT("="), true);
         DataDict.Add(d[0], d[1]);
     }
-    
-    
-    FMovieSceneSequencePlaybackSettings PlaybackSettings;
-    ALevelSequenceActor* LevelSequenceActor;
-
-    ULevelSequencePlayer* SequencePlayer;
-    if (GetRunSeq())
+    DataDict_ = DataDict;
+    // Handle pausing/resuming
+    FString theAction = AddressDict["Action"].ToLower();
+    if (AddressDict["CueName"] == GetHumanReadableName())
     {
-        SequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), GetRunSeq(), FMovieSceneSequencePlaybackSettings(), LevelSequenceActor);
-        
         if (SequencePlayer)
         {
-            SequencePlayer->Play();
-            float secs = SequencePlayer->GetDuration().AsSeconds();
-            UE_LOG(LogTemp, Log, TEXT("The duration is %f seconds"), secs);
-            FScriptDelegate funcDelegate;
-            funcDelegate.BindUFunction(this, "OnRunEnd");
-            SequencePlayer->OnFinished.AddUnique(funcDelegate);
-//            FadeOut->SequencePlayer->SetPlaybackPosition(0.0f);
-//            FadeOut->SequencePlayer->Play();
+            if (theAction == "pause")
+            {
+                SequencePlayer->Pause();
+            }
+            else if (theAction == "resume")
+            {
+                SequencePlayer->Play();
+            }
+        }
+        if (theAction == "go")
+        {
+            OnFadeInStart();
         }
     }
+    else
+    {
+        UE_LOG(LogTemp, Log, TEXT("This cue isn't for %s"), *GetHumanReadableName());
+    }
+}
+
+void ACueActor::OnFadeInStart_Implementation()
+{
+    if (GetFadeInSeq())
+        CueStateStart(GetFadeInSeq(), "FadeInLength", "OnFadeInEnd");
+    else
+        OnFadeInEnd();
+}
+
+void ACueActor::OnFadeInEnd_Implementation()
+{
+     // Add any fade in end implementation code here-- could be empty
+    SequencePlayer = nullptr;
+    OnRunStart();
+}
+
+
+void ACueActor::OnRunStart_Implementation()
+{
+    if (GetRunSeq())
+        CueStateStart(GetFadeInSeq(), "RunLength","OnRunEnd");
+    else
+        OnRunEnd();
 }
 
 void ACueActor::OnRunEnd_Implementation()
 {
-    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("The seq finished"));
+     // Add any run end implementation code here-- could be empty
+//    OnFadeOutStart();
+}
+
+void ACueActor::OnFadeOutStart_Implementation()
+{
+    if (GetFadeOutSeq())
+        CueStateStart(GetFadeInSeq(), "FadeOutLength","OnFadeOutEnd");
+    else
+        OnFadeOutEnd();
+}
+
+void ACueActor::OnFadeOutEnd_Implementation()
+{
+     // Add any fade out end implementation code here-- could be empty
+}
+
+void ACueActor::CueStateStart(ULevelSequence* Seq, FString CueStateLength, FName EndCueState)
+{
+    if (SequencePlayer == nullptr)
+    {
+        if (DataDict_.Contains(CueStateLength))
+        {
+            float l = FCString::Atof(*DataDict_[CueStateLength]);
+            float d = SequencePlayer->GetDuration().AsSeconds();
+            SequencePlayer->SetPlayRate(d/l);
+        }
+        ALevelSequenceActor* LevelSequenceActor;
+        SequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), Seq, FMovieSceneSequencePlaybackSettings(), LevelSequenceActor);
+    }
+            
+    if (SequencePlayer)
+    {
+        FScriptDelegate funcDelegate;
+        funcDelegate.BindUFunction(this, EndCueState);
+        SequencePlayer->OnFinished.AddUnique(funcDelegate);
+        SequencePlayer->PlayToFrame(0);
+        SequencePlayer->Play();
+    }
 }
 
 
+
+
+
+
+//    // **************
+//    FMovieSceneSequencePlaybackSettings PlaybackSettings;
+//    ALevelSequenceActor* LevelSequenceActor;
+//
+//    if (GetRunSeq())
+//    {
+//        if (SequencePlayer == nullptr)
+//        {
+//            SequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), GetRunSeq(), FMovieSceneSequencePlaybackSettings(), LevelSequenceActor);
+//        }
+//
+//
+//        if (SequencePlayer && AddressDict["Action"] == "go")
+//        {
+////            GetLevelSequencePlayer()->Play();
+//            SequencePlayer->Play();
+//            float secs = SequencePlayer->GetDuration().AsSeconds();
+//            UE_LOG(LogTemp, Log, TEXT("The duration is %f seconds, the name is %s"), secs, *GetDebugName(this));
+//            FScriptDelegate funcDelegate;
+//            funcDelegate.BindUFunction(this, "OnRunEnd");
+//            SequencePlayer->OnFinished.AddUnique(funcDelegate);
+////            GetLevelSequencePlayer()->OnFinished.AddUnique(funcDelegate);
+////            FadeOut->SequencePlayer->SetPlaybackPosition(0.0f);
+////            FadeOut->SequencePlayer->Play();
+//        }
+//
+//        else if (SequencePlayer && AddressDict["Action"] == "pause")
+//        {
+//            SequencePlayer->Pause();
+//        }
+//    }
