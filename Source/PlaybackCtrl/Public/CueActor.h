@@ -55,19 +55,19 @@ public:
     
     // EVENTS
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
-    void OnFadeInStart();
+    void OnFadeInStart(float t);
     
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
     void OnFadeInEnd();
     
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
-    void OnRunStart();
+    void OnRunStart(float t);
     
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
     void OnRunEnd();
     
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
-    void OnFadeOutStart();
+    void OnFadeOutStart(float t);
     
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=PlaybackCtrl)
     void OnFadeOutEnd();

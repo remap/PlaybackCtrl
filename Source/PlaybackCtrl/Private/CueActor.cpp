@@ -76,18 +76,12 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
         if (SequencePlayer)
         {
             if (theAction == "pause")
-            {
                 SequencePlayer->Pause();
-            }
             else if (theAction == "resume")
-            {
                 SequencePlayer->Play();
-            }
         }
-        if (theAction == "go")
-        {
-            OnFadeInStart();
-        }
+        else if (theAction == "go")
+            OnFadeInStart(0);
     }
     else
     {
@@ -95,7 +89,7 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
     }
 }
 
-void ACueActor::OnFadeInStart_Implementation()
+void ACueActor::OnFadeInStart_Implementation(float t)
 {
     if (GetFadeInSeq())
         CueStateStart(GetFadeInSeq(), "FadeInLength", "OnFadeInEnd");
@@ -107,14 +101,15 @@ void ACueActor::OnFadeInEnd_Implementation()
 {
      // Add any fade in end implementation code here-- could be empty
     SequencePlayer = nullptr;
-    OnRunStart();
+    OnRunStart(0);
+    
 }
 
 
-void ACueActor::OnRunStart_Implementation()
+void ACueActor::OnRunStart_Implementation(float t)
 {
     if (GetRunSeq())
-        CueStateStart(GetFadeInSeq(), "RunLength","OnRunEnd");
+        CueStateStart(GetRunSeq(), "RunLength","OnRunEnd");
     else
         OnRunEnd();
 }
@@ -122,13 +117,14 @@ void ACueActor::OnRunStart_Implementation()
 void ACueActor::OnRunEnd_Implementation()
 {
      // Add any run end implementation code here-- could be empty
-//    OnFadeOutStart();
+    SequencePlayer = nullptr;
+    OnFadeOutStart(0);
 }
 
-void ACueActor::OnFadeOutStart_Implementation()
+void ACueActor::OnFadeOutStart_Implementation(float t)
 {
     if (GetFadeOutSeq())
-        CueStateStart(GetFadeInSeq(), "FadeOutLength","OnFadeOutEnd");
+        CueStateStart(GetFadeOutSeq(), "FadeOutLength","OnFadeOutEnd");
     else
         OnFadeOutEnd();
 }
@@ -142,14 +138,14 @@ void ACueActor::CueStateStart(ULevelSequence* Seq, FString CueStateLength, FName
 {
     if (SequencePlayer == nullptr)
     {
+        ALevelSequenceActor* LevelSequenceActor;
+        SequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), Seq, FMovieSceneSequencePlaybackSettings(), LevelSequenceActor);
         if (DataDict_.Contains(CueStateLength))
         {
             float l = FCString::Atof(*DataDict_[CueStateLength]);
             float d = SequencePlayer->GetDuration().AsSeconds();
             SequencePlayer->SetPlayRate(d/l);
         }
-        ALevelSequenceActor* LevelSequenceActor;
-        SequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), Seq, FMovieSceneSequencePlaybackSettings(), LevelSequenceActor);
     }
             
     if (SequencePlayer)
@@ -161,40 +157,3 @@ void ACueActor::CueStateStart(ULevelSequence* Seq, FString CueStateLength, FName
         SequencePlayer->Play();
     }
 }
-
-
-
-
-
-
-//    // **************
-//    FMovieSceneSequencePlaybackSettings PlaybackSettings;
-//    ALevelSequenceActor* LevelSequenceActor;
-//
-//    if (GetRunSeq())
-//    {
-//        if (SequencePlayer == nullptr)
-//        {
-//            SequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), GetRunSeq(), FMovieSceneSequencePlaybackSettings(), LevelSequenceActor);
-//        }
-//
-//
-//        if (SequencePlayer && AddressDict["Action"] == "go")
-//        {
-////            GetLevelSequencePlayer()->Play();
-//            SequencePlayer->Play();
-//            float secs = SequencePlayer->GetDuration().AsSeconds();
-//            UE_LOG(LogTemp, Log, TEXT("The duration is %f seconds, the name is %s"), secs, *GetDebugName(this));
-//            FScriptDelegate funcDelegate;
-//            funcDelegate.BindUFunction(this, "OnRunEnd");
-//            SequencePlayer->OnFinished.AddUnique(funcDelegate);
-////            GetLevelSequencePlayer()->OnFinished.AddUnique(funcDelegate);
-////            FadeOut->SequencePlayer->SetPlaybackPosition(0.0f);
-////            FadeOut->SequencePlayer->Play();
-//        }
-//
-//        else if (SequencePlayer && AddressDict["Action"] == "pause")
-//        {
-//            SequencePlayer->Pause();
-//        }
-//    }
