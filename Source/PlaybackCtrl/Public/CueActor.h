@@ -91,6 +91,7 @@ public:
     void OnFadeOutEnd_Implementation();
     
     TMap<FString, FString> DataDict_;
+    TArray<TAssetSubclassOf<UObject>> ToSpawn;
     
 
 public:

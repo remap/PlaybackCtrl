@@ -6,7 +6,7 @@
 #include "LevelSequencePlayer.h"
 #include "LevelSequenceActor.h"
 #include "MovieSceneSequencePlayer.h"
-
+#include "DDHelpers.h"
 // Sets default values
 ACueActor::ACueActor()
     : _listener(this)
@@ -17,11 +17,21 @@ ACueActor::ACueActor()
         mod->RegisterReceiver(&_listener);
         UE_LOG(LogTemp, Log, TEXT("got mod"));
         DLOG_TRACE("got mod!");
+        
+        // Spawn relevant actors
+        FTransform SpawnLocation;
+        ToSpawn = mod->GetClassesToSpawn();
+        DLOG_INFO("ToSpawn I have {}", ToSpawn.Num());
+//         for (auto& Cue : ToSpawn )
+//         {
+//             ACueActor* NewCue = (ACueActor*) GetWorld()->SpawnActor(ACueActor::StaticClass(), &SpawnLocation);
+//         }
     }
     else
         UE_LOG(LogTemp, Log, TEXT("no module"));
     
     OnCueRx.AddDynamic(this, &ACueActor::OnCueReceived);
+    
 
 }
 
@@ -69,6 +79,16 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
         DataDict.Add(d[0], d[1]);
     }
     DataDict_ = DataDict;
+    
+    FTransform SpawnLocation;
+    // test spawning
+    for (auto& Cue : ToSpawn )
+         {
+             ACueActor* NewCue = (ACueActor*) GetWorld()->SpawnActor(ACueActor::StaticClass(), &SpawnLocation);
+             DLOG_INFO("wassap from the spawner");
+         }
+    // end test spawning
+    
     // Handle pausing/resuming
     FString theAction = AddressDict["Action"].ToLower();
     if (AddressDict["CueName"] == GetHumanReadableName())
