@@ -1,160 +1,65 @@
-//
-// PlaybackCtrl.cpp
-//
-//  Generated on February 19 2020
-//  Template created by Peter Gusev on 27 January 2020.
-//  Copyright 2013-2019 Regents of the University of California
-//
+// Fill out your copyright notice in the Description page of Project Settings.
 
-#include "PlaybackCtrl.h"
-#include "logging.hpp"
-#include "git-describe.h"
-#include <mutex>
 
-#define STRINGIZE_VERSION(v) STRINGIZE_TOKEN(v)
-#define STRINGIZE_TOKEN(t) #t
-#define PLUGIN_VERSION STRINGIZE_VERSION(GIT_DESCRIBE)
+#include "CueManager.h"
 
-#define MODULE_NAME "PlaybackCtrl"
-#define LOCTEXT_NAMESPACE "FPlaybackCtrlModule"
-
-#include "OscReceiverInterface.h"
-#include "PlaybackCtrlInterface.h"
-#include "OscDispatcher.h"
-
-#include "Engine/ObjectLibrary.h"
 #include <AssetRegistryModule.h>
 #include <ARFilter.h>
 #include <UObject/Class.h>
 #include <UObject/UObjectIterator.h>
 
-using namespace std;
-using namespace std::placeholders;
-
-typedef function<void(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp)> OnOscMessage;
-static FPlaybackCtrlModule* SharedInstance;
-
-class OscListener {
-public:
-    OscListener(OnOscMessage onOscMessage) :
-        listener_(this),
-        onOscMessage_(onOscMessage)
-    {
-        // register with OSC dispatcher here
-        auto oscDispatcher = UOscDispatcher::Get();
-        oscDispatcher->RegisterReceiver(&listener_);
-    }
-    
-    const FString & GetAddressFilter() const
-    {
-        return addressFilter_;
-    }
-
-    void SendEvent(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp)
-    {
-        onOscMessage_(Address, Data, SenderIp);
-    }
-    
-private:
-    FString addressFilter_;
-    BasicOscReceiver<OscListener> listener_;
-    OnOscMessage onOscMessage_;
-};
-
-void FPlaybackCtrlModule::StartupModule()
+#include "Kismet/GameplayStatics.h"
+// Sets default values
+ACueManager::ACueManager()
 {
-    initModule(MODULE_NAME, PLUGIN_VERSION);
-    SharedInstance = this;
-    // To log using ReLog plugin, use these macro definitions:
-//     DLOG_PLUGIN_ERROR("Error message");
-//     DLOG_PLUGIN_WARN("Warning message");
-//     DLOG_PLUGIN_INFO("Info message");
-//     DLOG_PLUGIN_DEBUG("Debug message");
-//     DLOG_PLUGIN_TRACE("Trace message");
+ 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = true;
 
-    // making sure OSC module is loaded
-    FName oscModuleName(TEXT("OSC"));
-    FModuleManager &manager = FModuleManager::Get();
-    FModuleStatus oscModuleStatus;
-    // force load DDManager module
-    IModuleInterface *moduleIface = manager.LoadModule(oscModuleName);
+}
+
+// Called when the game starts or when spawned
+void ACueManager::BeginPlay()
+{
+	Super::BeginPlay();
     
     
-}
-
-void FPlaybackCtrlModule::ShutdownModule()
-{
-    if (listener_)
-        delete listener_;
-}
-
-
-void FPlaybackCtrlModule::onOscReceived(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp)
-{
-    DLOG_PLUGIN_DEBUG("OSC RECEIVED IN PLAYBACK CTRL MODULE");
+//    TSubclassOf<ACueActor> classToFind;
+//    classToFind = ACueActor::StaticClass();
+//    TArray<AActor*> foundCues;
+//    UGameplayStatics::GetAllActorsOfClass(GetWorld(), classToFind, foundCues);
+//
+//    UE_LOG(LogTemp, Log, TEXT("I Found %i Cues"), foundCues.Num());
+//    DLOG_INFO("I Found {} Cues", foundCues.Num());
     
-    // Parse OSC message
-    // Current naming: /<project>/<build>/<dept>/<cue name>/<action>
-    FString oscAddress = Address.ToString();
-    TArray<FString> addressParts;
     
-    oscAddress.ParseIntoArray(addressParts, TEXT("/"), true);
-    if (addressParts.IsValidIndex(0))
-    {
-        if (addressParts[0] != TEXT("HighCastle") || addressParts.Num() < 5)
-        {
-            DLOG_PLUGIN_DEBUG("Message doesn't meet address naming requirements.");
-        }
-        else
-        {
-            for(auto receiver : _receivers)
-            {
-                receiver->SendEvent(Address, Data, SenderIp);
-            }
-        }
-    }
-    else
-        DLOG_PLUGIN_DEBUG("Message address is incorrect.");
-
+    SpawnCues(GetWorld());
+    
+//    TArray<TAssetSubclassOf<ACueActor>> PlaybackCtrl_ClassesToSpawn;
+//    FString CueClassName = "Class'/Script/PlaybackCtrl.CueActor'";
+//    GetAllBlueprintSubclasses(PlaybackCtrl_ClassesToSpawn, FName("ACueActor"), false, TEXT("/Game"), CueClassName);
+//    DLOG_INFO("I got {} resutls", PlaybackCtrl_ClassesToSpawn.Num());
+//    int32 count = 0;
+//    for (auto& Cue : PlaybackCtrl_ClassesToSpawn)
+//    {
+//        count += 1;
+//
+//        FActorSpawnParameters SpawnParams;
+//        SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+//        FString namestring = "Hope" + FString::FromInt(count);
+//        SpawnParams.Name = FName(*namestring);
+//        ACueActor* ActorRef = GetWorld()->SpawnActor<ACueActor>(Cue.Get(), GetTransform(), SpawnParams);
+//        DLOG_INFO("I SPAWNEDMAYBE??");
+//    }
 }
 
-void FPlaybackCtrlModule::onPostWorldInitialization (UWorld *world)
-{
-    static once_flag flag;
-    call_once(flag, [&](){
-        oscDispatcherRegister(world);
-    });
-}
-
-
-// added for components to register
-void FPlaybackCtrlModule::RegisterReceiver(IPlaybackCtrlInterface * receiver)
-{
-    FScopeLock ScopeLock(&_receiversMutex);
-    _receivers.AddUnique(receiver);
-    UE_LOG(LogTemp, Log, TEXT("added receiver in OnRegister"));
-
-}
-
-void FPlaybackCtrlModule::UnregisterReceiver(IPlaybackCtrlInterface * receiver)
-{
-    FScopeLock ScopeLock(&_receiversMutex);
-    _receivers.Remove(receiver);
-}
-
-FPlaybackCtrlModule* FPlaybackCtrlModule::GetSharedInstance()
-{
-    return SharedInstance;
-}
-
-void FPlaybackCtrlModule::SpawnCues(UWorld *world)
+void ACueManager::SpawnCues(UWorld *world)
 {
     // The cues will be spawned in every loaded level
     // TODO: possibly implement any logic that excludes temp levels
     TArray<TAssetSubclassOf<ACueActor>> ToSpawn;
     FString CueClassName = "Class'/Script/PlaybackCtrl.CueActor'";
-    GetAllBlueprintSubclasses(ToSpawn, FName("UBlueprint"), false, TEXT("/Game"), CueClassName);
-    DLOG_INFO("I got {} CueActor results to spawn", ToSpawn.Num());
+    GetAllBlueprintSubclasses(ToSpawn, FName("ACueActor"), false, TEXT("/Game"), CueClassName);
+    DLOG_INFO("I got {} CueActor results to spawn in the Cue Manager", ToSpawn.Num());
     for (auto& Cue : ToSpawn)
     {
         FActorSpawnParameters SpawnParams;
@@ -164,54 +69,30 @@ void FPlaybackCtrlModule::SpawnCues(UWorld *world)
         DLOG_INFO("my name is {}", TCHAR_TO_ANSI(*Cue.GetAssetName()));
         ACueActor* ActorRef = world->SpawnActor<ACueActor>(Cue.Get(), FVector(0,0,0), FRotator(0,0,0), SpawnParams);
     }
+    
+//    FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+//        TArray<FAssetData> AssetData;
+//    //    const UClass* Class = AActor::StaticClass();
+//        AssetRegistryModule.Get().GetAllAssets(AssetData);
+//
+//        for (auto& G : AssetData)
+//        {
+//            DLOG_INFO("MY FULL NAME IS {}", TCHAR_TO_ANSI(*G.GetFullName()));
+//            UE_LOG(LogTemp, Log, TEXT("MY FULL NAME IS %s"), *G.GetFullName());
+//        }
 }
 
-void FPlaybackCtrlModule::oscDispatcherRegister(UWorld* world)
+// Called every frame
+void ACueManager::Tick(float DeltaTime)
 {
-    DLOG_PLUGIN_DEBUG("world init plugin debug");
-    
-    FName oscModuleName(TEXT("OSC"));
-    FModuleManager &manager = FModuleManager::Get();
-    FModuleStatus oscModuleStatus;
-    // force load DDManager module
-    IModuleInterface *moduleIface = manager.LoadModule(oscModuleName);
-    ENetMode netMode = world->GetNetMode();
-    DLOG_PLUGIN_DEBUG(netMode);
-    if (netMode == NM_ListenServer || netMode == NM_DedicatedServer || netMode==NM_Standalone)
-    {
-        if (manager.QueryModule(oscModuleName, oscModuleStatus))
-        {
-            bool isLoaded = oscModuleStatus.bIsLoaded;
+	Super::Tick(DeltaTime);
 
-            if (!isLoaded)
-                isLoaded = (nullptr != manager.LoadModule(oscModuleName));
-            if (isLoaded)
-            {
-                if (UOscDispatcher::Get())
-                {
-                    listener_ = new OscListener(bind(&FPlaybackCtrlModule::onOscReceived, this, _1, _2, _3));
-                }
-
-                else
-                    DLOG_PLUGIN_ERROR("OSC dispatcher is NULL");
-                }
-            else
-                DLOG_PLUGIN_ERROR("OSC Module could not be loaded.");
-            }
-        else
-            DLOG_PLUGIN_ERROR("OSC Module could not be found.");
-    }
-    else
-        DLOG_PLUGIN_ERROR("THIS IS NOT A LISTEN OR DEDICATED SERVER");
-    
-    if (netMode == NM_Client)
-    {
-        if (listener_)
-            delete listener_;
-    }
 }
 
-void FPlaybackCtrlModule::GetAllBlueprintSubclasses(TArray<TAssetSubclassOf<ACueActor>>& Subclasses,
+
+
+
+void ACueManager::GetAllBlueprintSubclasses(TArray< TAssetSubclassOf< ACueActor > >& Subclasses,
                     FName BaseClassName /*TSubclassOf< UObject > Base*/,
                     bool bAllowAbstract, FString const& Path, FString ClassName)
 {
@@ -233,6 +114,7 @@ void FPlaybackCtrlModule::GetAllBlueprintSubclasses(TArray<TAssetSubclassOf<ACue
     // This simple approach just runs a synchronous scan on the entire content directory.
     // Better solutions would be to specify only the path to where the relevant blueprints are,
     // or to register a callback with the asset registry to be notified of when it's finished populating.
+    
     TArray< FString > ContentPaths;
     ContentPaths.Add(TEXT("/Game"));
     if (!Path.IsEmpty())
@@ -274,7 +156,7 @@ void FPlaybackCtrlModule::GetAllBlueprintSubclasses(TArray<TAssetSubclassOf<ACue
     for (auto cn : Filter.ClassNames)
         DLOG_INFO(" -- filter ClassName {}", TCHAR_TO_ANSI(*cn.ToString()));
 
-    //UBlueprint::StaticClass()->GetFName());
+//    UBlueprint::StaticClass()->GetFName());
     Filter.bRecursiveClasses = true;
     if(!Path.IsEmpty())
     {
@@ -356,6 +238,4 @@ void FPlaybackCtrlModule::GetAllBlueprintSubclasses(TArray<TAssetSubclassOf<ACue
     }
 }
 
-#undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_MODULE(FPlaybackCtrlModule, PlaybackCtrl)

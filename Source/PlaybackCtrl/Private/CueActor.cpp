@@ -17,22 +17,11 @@ ACueActor::ACueActor()
         mod->RegisterReceiver(&_listener);
         UE_LOG(LogTemp, Log, TEXT("got mod"));
         DLOG_TRACE("got mod!");
-        
-        // Spawn relevant actors
-        FTransform SpawnLocation;
-        ToSpawn = mod->GetClassesToSpawn();
-        DLOG_INFO("ToSpawn I have {}", ToSpawn.Num());
-//         for (auto& Cue : ToSpawn )
-//         {
-//             ACueActor* NewCue = (ACueActor*) GetWorld()->SpawnActor(ACueActor::StaticClass(), &SpawnLocation);
-//         }
     }
     else
         UE_LOG(LogTemp, Log, TEXT("no module"));
     
     OnCueRx.AddDynamic(this, &ACueActor::OnCueReceived);
-    
-
 }
 
 ACueActor::ACueActor(FVTableHelper & helper)
@@ -64,6 +53,8 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
     AddressDict.Add(TEXT("Build"), addressParts[1]);
     AddressDict.Add(TEXT("Department"), addressParts[2]);
     AddressDict.Add(TEXT("CueName"), addressParts[3]);
+    // use this block if there will be additional
+    //  components in the naming hierarchy
 //    for (int32 Index = 3; Index < addressParts.Num() -1; ++Index)
 //    {
 //        AddressDict.Add(TEXT("CueName_") + FString::FromInt(Index), addressParts[Index]);
@@ -80,14 +71,6 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
     }
     DataDict_ = DataDict;
     
-    FTransform SpawnLocation;
-    // test spawning
-    for (auto& Cue : ToSpawn )
-         {
-             ACueActor* NewCue = (ACueActor*) GetWorld()->SpawnActor(ACueActor::StaticClass(), &SpawnLocation);
-             DLOG_INFO("wassap from the spawner");
-         }
-    // end test spawning
     
     // Handle pausing/resuming
     FString theAction = AddressDict["Action"].ToLower();
@@ -122,7 +105,8 @@ void ACueActor::OnFadeInStart_Implementation()
 void ACueActor::OnFadeInEnd_Implementation()
 {
     OnFadeInEnd(); // for BP
-    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Fade In End Implementation"));
+    DLOG_INFO("Fade in End. TIME: {}", TCHAR_TO_ANSI(*FDateTime::Now().ToString()));
+//    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Fade In End Implementation"));
     SequencePlayer = nullptr;
     OnRunStart_Implementation();
     
@@ -131,8 +115,11 @@ void ACueActor::OnFadeInEnd_Implementation()
 
 void ACueActor::OnRunStart_Implementation()
 {
+    DLOG_INFO("Run Start");
     OnRunStart(); // for BP
-    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Run Start Implementation"));
+    DLOG_INFO("Run Start. TIME: {}", TCHAR_TO_ANSI(*FDateTime::Now().ToString()));
+
+//    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Run Start Implementation"));
     if (GetRunSeq())
         CueStateStart(GetRunSeq(), "RunLength","OnRunEnd_Implementation");
     else
@@ -162,25 +149,33 @@ void ACueActor::OnFadeOutEnd_Implementation()
 
 void ACueActor::CueStateStart(ULevelSequence* Seq, FString CueStateLength, FName EndCueState)
 {
+    DLOG_INFO("CueStateStart. TIME: {}", TCHAR_TO_ANSI(*FDateTime::Now().ToString()));
     if (SequencePlayer == nullptr)
     {
         ALevelSequenceActor* LevelSequenceActor;
         SequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), Seq, FMovieSceneSequencePlaybackSettings(), LevelSequenceActor);
+        DLOG_INFO("made a seq player");
         if (DataDict_.Contains(CueStateLength))
         {
             float l = FCString::Atof(*DataDict_[CueStateLength]);
             float d = SequencePlayer->GetDuration().AsSeconds();
             SequencePlayer->SetPlayRate(d/l);
         }
+        FScriptDelegate funcDelegate;
+        funcDelegate.BindUFunction(this, EndCueState);
+        SequencePlayer->OnFinished.AddUnique(funcDelegate);
     }
             
     if (SequencePlayer)
     {
-        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Cue state bind: %s"), *EndCueState.ToString()));
-        FScriptDelegate funcDelegate;
-        funcDelegate.BindUFunction(this, EndCueState);
-        SequencePlayer->OnFinished.AddUnique(funcDelegate);
+//        FScriptDelegate funcDelegate;
+//        funcDelegate.BindUFunction(this, EndCueState);
+//        SequencePlayer->OnFinished.AddUnique(funcDelegate);
         SequencePlayer->PlayToFrame(0);
         SequencePlayer->Play();
+        DLOG_INFO("press play");
     }
 }
+
+
+

@@ -56,14 +56,9 @@ public:
     /// Remove the receiver in the listeners list
     void UnregisterReceiver(IPlaybackCtrlInterface * receiver);
     
-    TArray<TAssetSubclassOf<UObject>> PlaybackCtrl_ClassesToSpawn;
+    void SpawnCues(UWorld *world);
     
-    TArray<TAssetSubclassOf<UObject>> GetClassesToSpawn()
-    {
-        return PlaybackCtrl_ClassesToSpawn;
-    }
-    
-    void GetAllBlueprintSubclasses(TArray< TAssetSubclassOf< UObject > >& Subclasses, FName BaseClassName, bool bAllowAbstract, FString const& Path, FString ClassName);
+    void GetAllBlueprintSubclasses(TArray<TAssetSubclassOf<ACueActor>>& Subclasses, FName BaseClassName, bool bAllowAbstract, FString const& Path, FString ClassName);
     
     
 
