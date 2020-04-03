@@ -141,7 +141,8 @@ public:
     
 protected:
     void BeginDestroy() override;
-
+    virtual void BeginPlay() override;
+    
 private:
     BasicCueReceiver<ACueActor> _listener;
 };

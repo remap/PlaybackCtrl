@@ -29,7 +29,12 @@ ACueActor::ACueActor(FVTableHelper & helper)
 {
     
 }
-// Called when the game starts or when spawned
+
+void ACueActor::BeginPlay()
+{
+    Super::BeginPlay();
+}
+
 void ACueActor::BeginDestroy()
 {
     FPlaybackCtrlModule* mod = FPlaybackCtrlModule::GetSharedInstance();
@@ -116,6 +121,7 @@ void ACueActor::OnFadeInEnd_Implementation()
 void ACueActor::OnRunStart_Implementation()
 {
     DLOG_INFO("Run Start");
+    UE_LOG(LogTemp, Log, TEXT("RunStart"));
     OnRunStart(); // for BP
     DLOG_INFO("Run Start. TIME: {}", TCHAR_TO_ANSI(*FDateTime::Now().ToString()));
 
@@ -150,11 +156,12 @@ void ACueActor::OnFadeOutEnd_Implementation()
 void ACueActor::CueStateStart(ULevelSequence* Seq, FString CueStateLength, FName EndCueState)
 {
     DLOG_INFO("CueStateStart. TIME: {}", TCHAR_TO_ANSI(*FDateTime::Now().ToString()));
+    UE_LOG(LogTemp, Log, TEXT("CueStateStart"));
     if (SequencePlayer == nullptr)
     {
         ALevelSequenceActor* LevelSequenceActor;
         SequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), Seq, FMovieSceneSequencePlaybackSettings(), LevelSequenceActor);
-        DLOG_INFO("made a seq player");
+
         if (DataDict_.Contains(CueStateLength))
         {
             float l = FCString::Atof(*DataDict_[CueStateLength]);
@@ -174,6 +181,7 @@ void ACueActor::CueStateStart(ULevelSequence* Seq, FString CueStateLength, FName
         SequencePlayer->PlayToFrame(0);
         SequencePlayer->Play();
         DLOG_INFO("press play");
+        UE_LOG(LogTemp, Log, TEXT("pressed Play"));
     }
 }
 

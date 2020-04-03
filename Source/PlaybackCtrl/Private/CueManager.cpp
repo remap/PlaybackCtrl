@@ -32,7 +32,7 @@ void ACueManager::BeginPlay()
 //    DLOG_INFO("I Found {} Cues", foundCues.Num());
     
     
-    SpawnCues(GetWorld());
+//    SpawnCues(GetWorld());
     
 //    TArray<TAssetSubclassOf<ACueActor>> PlaybackCtrl_ClassesToSpawn;
 //    FString CueClassName = "Class'/Script/PlaybackCtrl.CueActor'";
