@@ -24,10 +24,10 @@ class PLAYBACKCTRL_API ACueActor : public AActor
     GENERATED_BODY()
     
 public:
-    UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
+//    UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
     FString DepartmentFilter;
-    
-    UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
+//
+//    UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
     FString BuildFilter;
     
 
@@ -49,7 +49,7 @@ public:
     UPROPERTY(BlueprintAssignable, Category=PlaybackCrtl)
     FComponentCueRxSignature OnCueRx;
     
-    UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
+//    UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
     ULevelSequencePlayer* SequencePlayer;
 
     
@@ -135,6 +135,8 @@ public:
     void OnCueReceived(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp);
     
     void CueStateStart(ULevelSequence* Seq, FString CueStateLength, FName EndCueState);
+    
+    void ResetCue();
     
     
     

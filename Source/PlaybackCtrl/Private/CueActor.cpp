@@ -57,7 +57,7 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
 
     AddressDict.Add(TEXT("Build"), addressParts[1]);
     AddressDict.Add(TEXT("Department"), addressParts[2]);
-    AddressDict.Add(TEXT("CueName"), addressParts[3]);
+    AddressDict.Add(TEXT("CueName"), addressParts[3].Append("_C"));
     // use this block if there will be additional
     //  components in the naming hierarchy
 //    for (int32 Index = 3; Index < addressParts.Num() -1; ++Index)
@@ -90,6 +90,8 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
         }
         else if (theAction == "go")
             OnFadeInStart_Implementation();
+        else if (theAction == "reset")
+            ResetCue();
     }
     else
     {
@@ -100,7 +102,6 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
 void ACueActor::OnFadeInStart_Implementation()
 {
     OnFadeInStart(); //for BP
-    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Fade In Start Implementation"));
     if (GetFadeInSeq())
         CueStateStart(GetFadeInSeq(), "FadeInLength", "OnFadeInEnd_Implementation");
     else
@@ -110,7 +111,7 @@ void ACueActor::OnFadeInStart_Implementation()
 void ACueActor::OnFadeInEnd_Implementation()
 {
     OnFadeInEnd(); // for BP
-    DLOG_INFO("Fade in End. TIME: {}", TCHAR_TO_ANSI(*FDateTime::Now().ToString()));
+//    DLOG_INFO("Fade in End. TIME: {}", TCHAR_TO_ANSI(*FDateTime::Now().ToString()));
 //    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Fade In End Implementation"));
     SequencePlayer = nullptr;
     OnRunStart_Implementation();
@@ -123,8 +124,6 @@ void ACueActor::OnRunStart_Implementation()
     DLOG_INFO("Run Start");
     UE_LOG(LogTemp, Log, TEXT("RunStart"));
     OnRunStart(); // for BP
-    DLOG_INFO("Run Start. TIME: {}", TCHAR_TO_ANSI(*FDateTime::Now().ToString()));
-
 //    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Run Start Implementation"));
     if (GetRunSeq())
         CueStateStart(GetRunSeq(), "RunLength","OnRunEnd_Implementation");
@@ -151,11 +150,11 @@ void ACueActor::OnFadeOutStart_Implementation()
 void ACueActor::OnFadeOutEnd_Implementation()
 {
     OnFadeOutEnd(); //for BP
+    SequencePlayer = nullptr;
 }
 
 void ACueActor::CueStateStart(ULevelSequence* Seq, FString CueStateLength, FName EndCueState)
 {
-    DLOG_INFO("CueStateStart. TIME: {}", TCHAR_TO_ANSI(*FDateTime::Now().ToString()));
     UE_LOG(LogTemp, Log, TEXT("CueStateStart"));
     if (SequencePlayer == nullptr)
     {
@@ -180,9 +179,29 @@ void ACueActor::CueStateStart(ULevelSequence* Seq, FString CueStateLength, FName
 //        SequencePlayer->OnFinished.AddUnique(funcDelegate);
         SequencePlayer->PlayToFrame(0);
         SequencePlayer->Play();
-        DLOG_INFO("press play");
         UE_LOG(LogTemp, Log, TEXT("pressed Play"));
     }
+}
+
+void ACueActor::ResetCue()
+{
+    ULevelSequence* Seq;
+    if (GetFadeInSeq())
+        Seq = GetFadeInSeq();
+    else if (GetRunSeq())
+        Seq = GetRunSeq();
+    else if (GetFadeOutSeq())
+        Seq = GetFadeOutSeq();
+    else
+        return;
+        
+    ALevelSequenceActor* LevelSequenceActor;
+    SequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), Seq, FMovieSceneSequencePlaybackSettings(), LevelSequenceActor);
+    SequencePlayer->PlayToFrame(0);
+    SequencePlayer = nullptr;
+//    SequencePlayer->Play();
+//    SequencePlayer->Pause();
+    
 }
 
 
