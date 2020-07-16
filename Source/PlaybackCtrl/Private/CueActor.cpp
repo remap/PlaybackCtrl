@@ -204,5 +204,20 @@ void ACueActor::ResetCue()
     
 }
 
+float ACueActor::GetFloatParam(FString name) {
+    float f = 1.0;
+    if (DataDict_.Contains(name))
+    {
+        f = FCString::Atof(*DataDict_[name]);
+    }
+    return f;
+}
 
-
+FString ACueActor::GetStringParam(FString name) {
+    FString s = "";
+    if (DataDict_.Contains(name))
+    {
+        s = *DataDict_[name];
+    }
+    return s;
+}
