@@ -61,6 +61,7 @@ public:
     UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
     ULevelSequencePlayer* SequencePlayer;
 
+
     
     // EVENTS
     UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category=PlaybackCtrl)
@@ -155,6 +156,12 @@ public:
 
     UFUNCTION(BlueprintCallable)
     float getCueStateProgress() const { return cueStateProgress_; }
+
+    UFUNCTION(BlueprintCallable, Category = "PlaybackCtrl")
+    float GetFloatParam(FString ParamName);
+
+    UFUNCTION(BlueprintCallable, Category = "PlaybackCtrl")
+    FString GetStringParam(FString ParamName);
     
     UFUNCTION(BlueprintCallable)
     CueActorState getCueState() const { return cueState_; }
