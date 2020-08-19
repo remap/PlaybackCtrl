@@ -157,14 +157,14 @@ void FPlaybackCtrlModule::SpawnCues(UWorld *world)
     TArray<TAssetSubclassOf<ACueActor>> ToSpawn;
     FString CueClassName = "Class'/Script/PlaybackCtrl.CueActor'";
     GetAllBlueprintSubclasses(ToSpawn, FName("ACueActor"), false, TEXT("/Game"), CueClassName);
-    DLOG_INFO("I got {} CueActor results to spawn in the Cue Manager", ToSpawn.Num());
+    //DLOG_TRACE("I got {} CueActor results to spawn in the Cue Manager", ToSpawn.Num());
     for (auto& Cue : ToSpawn)
     {
         FActorSpawnParameters SpawnParams;
         SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 //        FString namestring = "Hope" + FString::FromInt(count);
         SpawnParams.Name = FName(*Cue.GetAssetName());
-        DLOG_INFO("my name is {}", TCHAR_TO_ANSI(*Cue.GetAssetName()));
+        //DLOG_TRACE("my name is {}", TCHAR_TO_ANSI(*Cue.GetAssetName()));
         ACueActor* ActorRef = world->SpawnActor<ACueActor>(Cue.Get(), FVector(0,0,0), FRotator(0,0,0), SpawnParams);
     }
     
@@ -271,12 +271,12 @@ void FPlaybackCtrlModule::GetAllBlueprintSubclasses(TArray< TAssetSubclassOf< AC
     ContentPaths.Add(TEXT("/Game"));
     if (!Path.IsEmpty())
     {
-        DLOG_INFO("Add search in {}", TCHAR_TO_ANSI(*Path));
+        //DLOG_TRACE("Add search in {}", TCHAR_TO_ANSI(*Path));
         ContentPaths.Add(Path);
     }
 
     AssetRegistry.ScanPathsSynchronous(ContentPaths);
-    DLOG_INFO("scan synchronous");
+    //DLOG_TRACE("scan synchronous");
 
     //FName BaseClassName = Base->GetFName();
 
@@ -285,17 +285,17 @@ void FPlaybackCtrlModule::GetAllBlueprintSubclasses(TArray< TAssetSubclassOf< AC
     {
         TArray< FName > BaseNames;
         BaseNames.Add(BaseClassName);
-//        DLOG_INFO("added base class name");
-//        DLOG_INFO("searching for classes derived from {}",
+//        DLOG_TRACE("added base class name");
+//        DLOG_TRACE("searching for classes derived from {}",
 //                  TCHAR_TO_ANSI(*BaseClassName.ToString()));
 
         TSet< FName > Excluded;
         AssetRegistry.GetDerivedClassNames(BaseNames, Excluded, DerivedNames);
     }
 
-//    DLOG_INFO("derived class names num {}", DerivedNames.Num());
+//    DLOG_TRACE("derived class names num {}", DerivedNames.Num());
 //    for (auto n : DerivedNames)
-//        DLOG_INFO("DERIVED NAME {}", TCHAR_TO_ANSI(*n.ToString()));
+//        DLOG_TRACE("DERIVED NAME {}", TCHAR_TO_ANSI(*n.ToString()));
 
     // Set up a filter and then pull asset data for all blueprints in the specified path from the asset registry.
     // Note that this works in packaged builds too. Even though the blueprint itself cannot be loaded, its asset data
@@ -305,8 +305,8 @@ void FPlaybackCtrlModule::GetAllBlueprintSubclasses(TArray< TAssetSubclassOf< AC
     Filter.ClassNames.Add(FName("Blueprint"));
 //            Filter.ClassNames.Add(BaseClassName);
 
-    for (auto cn : Filter.ClassNames)
-        DLOG_INFO(" -- filter ClassName {}", TCHAR_TO_ANSI(*cn.ToString()));
+    //for (auto cn : Filter.ClassNames)
+        //DLOG_TRACE(" -- filter ClassName {}", TCHAR_TO_ANSI(*cn.ToString()));
 
 //    UBlueprint::StaticClass()->GetFName());
     Filter.bRecursiveClasses = true;
@@ -319,32 +319,32 @@ void FPlaybackCtrlModule::GetAllBlueprintSubclasses(TArray< TAssetSubclassOf< AC
     TArray< FAssetData > AssetList;
     AssetRegistry.GetAssets(Filter, AssetList);
 
-    DLOG_INFO("loaded AssetList, n items {}", AssetList.Num());
+    //DLOG_TRACE("loaded AssetList, n items {}", AssetList.Num());
 
     // Iterate over retrieved blueprint assets
     for(auto const& Asset : AssetList)
     {
-        DLOG_INFO("item {}",
-                  TCHAR_TO_ANSI(*Asset.AssetName.ToString()));
+        //DLOG_TRACE("item {}",
+                  //TCHAR_TO_ANSI(*Asset.AssetName.ToString()));
 
         TArray<FName> tagKeys;
 //                TArray<FName> tagValues;
         Asset.TagsAndValues.GenerateKeyArray(tagKeys);
 //                Asset.TagsAndValues.GenerateValueArray(tagValues);
 
-        DLOG_INFO("item tag keys");
-        for (auto tagKey : tagKeys)
-            DLOG_INFO("{}", TCHAR_TO_ANSI(*tagKey.ToString()));
-//                DLOG_INFO("item tag values");
+        //DLOG_TRACE("item tag keys");
+//        for (auto tagKey : tagKeys)
+//            DLOG_TRACE("{}", TCHAR_TO_ANSI(*tagKey.ToString()));
+//                DLOG_TRACE("item tag values");
 //                for (auto tagValue : tagValues)
-//                    DLOG_INFO("{}", TCHAR_TO_ANSI(*tagValue.ToString()));
+//                    DLOG_TRACE("{}", TCHAR_TO_ANSI(*tagValue.ToString()));
 
         // Get the the class this blueprint generates (this is stored as a full path)
         auto findResult = Asset.TagsAndValues.FindTag(GeneratedClassTag);
         FString findResultValue = Asset.TagsAndValues.FindTag(TEXT("ParentClass")).GetValue();
 //                auto findResult = Asset.TagsAndValues.FindTag(TEXT("ParentClass"));
 
-        DLOG_INFO("find result val {}", TCHAR_TO_ANSI(*findResultValue));
+//        DLOG_TRACE("find result val {}", TCHAR_TO_ANSI(*findResultValue));
 
         if(findResult.IsSet())
         {
@@ -369,9 +369,9 @@ void FPlaybackCtrlModule::GetAllBlueprintSubclasses(TArray< TAssetSubclassOf< AC
             const FString ClassObjectPath = FPackageName::ExportTextPathToObjectPath(*GeneratedClassPathPtr);
             const FString ClassName = FPackageName::ObjectPathToObjectName(ClassObjectPath);
 
-            DLOG_INFO("OBJECT PATH {} CLASS NAME {}",
-                      TCHAR_TO_ANSI(*ClassObjectPath),
-                      TCHAR_TO_ANSI(*ClassName));
+//            DLOG_TRACE("OBJECT PATH {} CLASS NAME {}",
+//                      TCHAR_TO_ANSI(*ClassObjectPath),
+//                      TCHAR_TO_ANSI(*ClassName));
 
 //                     Check if this class is in the derived set
             FString CueClassName = "Class'/Script/PlaybackCtrl.CueActor'";
