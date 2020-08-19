@@ -16,7 +16,16 @@
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FComponentCueRxSignature, const FName &, Address, const TArray<FOscDataElemStruct> &, Data, const FString &, SenderIp);
+DECLARE_DELEGATE(OnCueStateEndDelegate)
 
+UENUM(BlueprintType)
+enum class CueActorState : uint8 {
+    None UMETA(DisplayName = "None"),
+    FadeIn UMETA(DisplayName = "Fade In"),
+    Run UMETA(DisplayName = "Run"),
+    FadeOut UMETA(DisplayName = "Fade Out"),
+    Finished UMETA(DisplayName = "Finished")
+};
 
 UCLASS(ClassGroup=PlaybackCtrl)
 class PLAYBACKCTRL_API ACueActor : public AActor
@@ -49,8 +58,9 @@ public:
     UPROPERTY(BlueprintAssignable, Category=PlaybackCrtl)
     FComponentCueRxSignature OnCueRx;
     
-//    UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
+    UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
     ULevelSequencePlayer* SequencePlayer;
+
 
     
     // EVENTS
@@ -90,6 +100,9 @@ public:
     UFUNCTION()
     void OnFadeOutEnd_Implementation();
     
+    UFUNCTION(BlueprintCallable)
+    TMap<FString, FString> getCueParameters() const { return DataDict_; }
+
     TMap<FString, FString> DataDict_;
     TArray<TAssetSubclassOf<UObject>> ToSpawn;
         
@@ -138,14 +151,40 @@ public:
     
     void ResetCue();
     
+    UFUNCTION(BlueprintCallable)
+    float getCueProgress() const { return cueProgress_;  }
+
+    UFUNCTION(BlueprintCallable)
+    float getCueStateProgress() const { return cueStateProgress_; }
+
+    UFUNCTION(BlueprintCallable, Category = "PlaybackCtrl")
+    float GetFloatParam(FString ParamName);
+
+    UFUNCTION(BlueprintCallable, Category = "PlaybackCtrl")
+    FString GetStringParam(FString ParamName);
     
-    
-    
+    UFUNCTION(BlueprintCallable)
+    CueActorState getCueState() const { return cueState_; }
+
+    UFUNCTION(BlueprintCallable)
+    FString getCueStateString() const;
+
+    UFUNCTION(BlueprintCallable)
+    float getStateLength(CueActorState state);
+
+    void setState(CueActorState state);
+    float getSequenceDurationSeconds(ULevelSequence* seq) const;
+
 protected:
     void BeginDestroy() override;
     virtual void BeginPlay() override;
+    void Tick(float DeltaTime) override;
     
 private:
     BasicCueReceiver<ACueActor> _listener;
+    CueActorState cueState_;
+    float cueStateProgress_, cueProgress_;
+    float fadeInLen_, fadeOutLen_, runLen_, cueTotalLen_;
+    OnCueStateEndDelegate onStateEndDelegate_;
 };
 

@@ -30,9 +30,56 @@ ACueActor::ACueActor(FVTableHelper & helper)
     
 }
 
+void ACueActor::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    if (cueState_ != CueActorState::None &&
+        cueState_ != CueActorState::Finished)
+    {
+        // GetDeltaSeconds() accounts for world dilation
+        // we might not need it, time dilation never changes
+        // (in that case it'll be same as DeltaTime)
+        float d = GetWorld()->GetDeltaSeconds();
+        float stateLen = 0;
+
+        switch (cueState_)
+        {
+        case CueActorState::FadeIn:
+            stateLen = fadeInLen_;
+            break;
+        case CueActorState::Run:
+            stateLen = runLen_;
+            break;
+        case CueActorState::FadeOut:
+            stateLen = fadeOutLen_;
+            break;
+        default:
+            break;
+        }
+
+        if (stateLen == 0)
+            cueStateProgress_ = 1.;
+        else
+            cueStateProgress_ += d / stateLen;
+        cueProgress_ += d / cueTotalLen_;
+
+        if (cueStateProgress_ >= 1.)
+        {
+            cueStateProgress_ = 1.;
+            onStateEndDelegate_.ExecuteIfBound();
+        }
+        if (cueProgress_ >= 1.)
+            cueProgress_ = 1.;
+        
+    }
+}
+
 void ACueActor::BeginPlay()
 {
     Super::BeginPlay();
+
+    cueState_ = CueActorState::None;
 }
 
 void ACueActor::BeginDestroy()
@@ -76,6 +123,11 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
     }
     DataDict_ = DataDict;
     
+    // save cue lengths
+    fadeInLen_ = getStateLength(CueActorState::FadeIn);
+    fadeOutLen_ = getStateLength(CueActorState::FadeOut);
+    runLen_ = getStateLength(CueActorState::Run);
+    cueTotalLen_ = fadeInLen_ + fadeOutLen_ + runLen_;
     
     // Handle pausing/resuming
     FString theAction = AddressDict["Action"].ToLower();
@@ -101,11 +153,16 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
 
 void ACueActor::OnFadeInStart_Implementation()
 {
+    setState(CueActorState::FadeIn);
+
+    DLOG_INFO("FadeIn Start");
+    UE_LOG(LogTemp, Log, TEXT("FadeIn Start"));
     OnFadeInStart(); //for BP
     if (GetFadeInSeq())
         CueStateStart(GetFadeInSeq(), "FadeInLength", "OnFadeInEnd_Implementation");
     else
-        OnFadeInEnd_Implementation();
+        //OnFadeInEnd_Implementation();
+        onStateEndDelegate_.BindUObject(this, &ACueActor::OnFadeInEnd_Implementation);
 }
 
 void ACueActor::OnFadeInEnd_Implementation()
@@ -114,21 +171,22 @@ void ACueActor::OnFadeInEnd_Implementation()
 //    DLOG_INFO("Fade in End. TIME: {}", TCHAR_TO_ANSI(*FDateTime::Now().ToString()));
 //    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Fade In End Implementation"));
     SequencePlayer = nullptr;
-    OnRunStart_Implementation();
-    
+    OnRunStart_Implementation();   
 }
-
 
 void ACueActor::OnRunStart_Implementation()
 {
+    setState(CueActorState::Run);
+
     DLOG_INFO("Run Start");
     UE_LOG(LogTemp, Log, TEXT("RunStart"));
     OnRunStart(); // for BP
 //    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Run Start Implementation"));
     if (GetRunSeq())
         CueStateStart(GetRunSeq(), "RunLength","OnRunEnd_Implementation");
-    else
-        OnRunEnd_Implementation();
+    else 
+    //    OnRunEnd_Implementation();
+        onStateEndDelegate_.BindUObject(this, &ACueActor::OnRunEnd_Implementation);
 }
 
 void ACueActor::OnRunEnd_Implementation()
@@ -140,17 +198,23 @@ void ACueActor::OnRunEnd_Implementation()
 
 void ACueActor::OnFadeOutStart_Implementation()
 {
+    setState(CueActorState::FadeOut);
+
     OnFadeOutStart(); //for BP
     if (GetFadeOutSeq())
-        CueStateStart(GetFadeOutSeq(), "FadeOutLength","OnFadeOutEnd_Implementation");
+        CueStateStart(GetFadeOutSeq(), "FadeOutLength", "OnFadeOutEnd_Implementation");
     else
-        OnFadeOutEnd();
+        //    OnFadeOutEnd();
+        onStateEndDelegate_.BindUObject(this, &ACueActor::OnFadeOutEnd_Implementation);
 }
 
 void ACueActor::OnFadeOutEnd_Implementation()
 {
     OnFadeOutEnd(); //for BP
     SequencePlayer = nullptr;
+
+    setState(CueActorState::Finished);
+    onStateEndDelegate_.Unbind();
 }
 
 void ACueActor::CueStateStart(ULevelSequence* Seq, FString CueStateLength, FName EndCueState)
@@ -201,8 +265,103 @@ void ACueActor::ResetCue()
     SequencePlayer = nullptr;
 //    SequencePlayer->Play();
 //    SequencePlayer->Pause();
+    setState(CueActorState::None);
+    cueProgress_ = 0.;
     
 }
 
+void ACueActor::setState(CueActorState state)
+{
+    cueStateProgress_ = 0.;
+    cueState_ = state;
+}
 
+FString ACueActor::getCueStateString() const
+{
+    switch (cueState_)
+    {
+    case CueActorState::None:
+        return FString("None");
+    case CueActorState::FadeIn:
+        return FString("FadeIn");
+    case CueActorState::Run:
+        return FString("Run");
+    case CueActorState::FadeOut:
+        return FString("FadeOut");
+    case CueActorState::Finished:
+        return FString("Finished");
+    default:
+        break;
+    }
 
+    return FString();
+}
+
+float ACueActor::getStateLength(CueActorState state)
+{
+    float len = 0.;
+    FString stateLengthKey;
+    ULevelSequence* seq = nullptr;
+
+    switch (state) {
+    case CueActorState::FadeIn:
+    {
+        seq = GetFadeInSeq();
+        stateLengthKey = "FadeInLength";
+    }
+        break;
+    case CueActorState::Run:
+    {
+        seq = GetRunSeq();
+        stateLengthKey = "RunLength";
+    }
+        break;
+    case CueActorState::FadeOut:
+    {
+        seq = GetFadeOutSeq();
+        stateLengthKey = "FadeOutLength";
+    }
+        break;
+
+    default:
+        return 0;
+    }
+
+    len = getSequenceDurationSeconds(seq);
+    if (len == 0 && DataDict_.Contains(stateLengthKey))
+        len = FCString::Atof(*DataDict_[stateLengthKey]);
+
+    return len;
+}
+
+float ACueActor::getSequenceDurationSeconds(ULevelSequence* seq) const
+{
+    if (!seq)
+        return 0.;
+
+    ALevelSequenceActor* LevelSequenceActor;
+    ULevelSequencePlayer* tmpSeqPlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(),
+        seq,
+        FMovieSceneSequencePlaybackSettings(),
+        LevelSequenceActor);
+
+    return tmpSeqPlayer->GetDuration().AsSeconds();
+}
+
+float ACueActor::GetFloatParam(FString name) {
+    float f = 1.0;
+    if (DataDict_.Contains(name))
+    {
+        f = FCString::Atof(*DataDict_[name]);
+    }
+    return f;
+}
+
+FString ACueActor::GetStringParam(FString name) {
+    FString s = "";
+    if (DataDict_.Contains(name))
+    {
+        s = *DataDict_[name];
+    }
+    return s;
+}
