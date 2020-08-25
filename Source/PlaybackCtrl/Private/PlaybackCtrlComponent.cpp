@@ -6,8 +6,7 @@ UPlaybackCtrlComponent::UPlaybackCtrlComponent()
     : listener_(this)
 {
     DLOG_TRACE("Start PlaybackCtrlComponent");
-    SetIsReplicated(true);
-
+    SetIsReplicatedByDefault(true);
 }
 
 UPlaybackCtrlComponent::UPlaybackCtrlComponent(FVTableHelper & helper)
@@ -15,7 +14,7 @@ UPlaybackCtrlComponent::UPlaybackCtrlComponent(FVTableHelper & helper)
 {
     // Does not need to be a valid object.
     DLOG_TRACE("Start PlaybackCtrlComponent helper");
-    SetIsReplicated(true);
+    SetIsReplicatedByDefault(true);
 }
 
 
