@@ -15,8 +15,7 @@ ACueActor::ACueActor()
     if (mod)
     {
         mod->RegisterReceiver(&_listener);
-        UE_LOG(LogTemp, Log, TEXT("got mod"));
-        DLOG_TRACE("got mod!");
+        DLOG_TRACE("Created Cue actor {}", TCHAR_TO_ANSI(*AActor::GetDebugName(this)));
     }
     else
         UE_LOG(LogTemp, Log, TEXT("no module"));

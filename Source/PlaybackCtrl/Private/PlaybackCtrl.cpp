@@ -78,9 +78,6 @@ void FPlaybackCtrlModule::StartupModule()
     FModuleStatus oscModuleStatus;
     // force load DDManager module
     IModuleInterface *moduleIface = manager.LoadModule(oscModuleName);
-    
-    
-    
 }
 
 void FPlaybackCtrlModule::ShutdownModule()
@@ -124,9 +121,8 @@ void FPlaybackCtrlModule::onPostWorldInitialization (UWorld *world)
     static once_flag flag;
     call_once(flag, [&](){
         oscDispatcherRegister(world);
+        SpawnCues(world);
     });
-    
-    SpawnCues(world);
 }
 
 
