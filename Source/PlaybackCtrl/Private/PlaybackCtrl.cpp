@@ -118,11 +118,17 @@ void FPlaybackCtrlModule::onOscReceived(const FName & Address, const TArray<FOsc
 
 void FPlaybackCtrlModule::onPostWorldInitialization (UWorld *world)
 {
-    static once_flag flag;
-    call_once(flag, [&](){
-        oscDispatcherRegister(world);
-        SpawnCues(world);
-    });
+    // the first game world Unreal creates is Untitled_0
+    //    ¯\_(ツ)_/¯
+    // let's skip it...
+    if (world && !world->GetMapName().Contains("Untitled"))
+    {
+        static once_flag flag;
+        call_once(flag, [&](){
+            oscDispatcherRegister(world);
+            SpawnCues(world);
+        });
+    }
 }
 
 
