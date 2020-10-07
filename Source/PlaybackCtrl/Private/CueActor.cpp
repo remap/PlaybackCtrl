@@ -153,22 +153,30 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
         if (SequencePlayer)
         {
             if (theAction == "pause")
+            {
                 DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} -- cue pause",
                                   TCHAR_TO_ANSI(*GetHumanReadableName()));
                 SequencePlayer->Pause();
+            }
             else if (theAction == "resume")
+            {
                 DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} -- cue resume",
                                   TCHAR_TO_ANSI(*GetHumanReadableName()));
                 SequencePlayer->Play();
+            }
         }
         else if (theAction == "go")
+        {
             DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} -- cue go",
                               TCHAR_TO_ANSI(*GetHumanReadableName()));
             OnFadeInStart_Implementation();
+        }
         else if (theAction == "reset")
+        {
             DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} -- cue reset",
                               TCHAR_TO_ANSI(*GetHumanReadableName()));
             ResetCue();
+        }
     }
     else
     {
