@@ -100,8 +100,9 @@ void ACueActor::BeginDestroy()
 
 void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp)
 {
-    DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} -- parsing cue",
-                      TCHAR_TO_ANSI(*GetHumanReadableName()));
+    DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} -- parsing cue {}",
+                      TCHAR_TO_ANSI(*GetHumanReadableName()),
+                      TCHAR_TO_ANSI(*Address.ToString()));
     
     // Parse OSC message
     // Address: Current naming: /<project>/<build>/<dept>/<cue name>/<action>
@@ -112,7 +113,13 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
 
     AddressDict.Add(TEXT("Build"), addressParts[1]);
     AddressDict.Add(TEXT("Department"), addressParts[2]);
+    
+#if WITH_EDITOR
+    AddressDict.Add(TEXT("CueName"), addressParts[3].Append("_"));
+#else
     AddressDict.Add(TEXT("CueName"), addressParts[3].Append("_C"));
+#endif
+    
     // use this block if there will be additional
     //  components in the naming hierarchy
 //    for (int32 Index = 3; Index < addressParts.Num() -1; ++Index)
@@ -137,7 +144,7 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
     runLen_ = getStateLength(CueActorState::Run);
     cueTotalLen_ = fadeInLen_ + fadeOutLen_ + runLen_;
     
-    DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} (debug name ) received OSC message: build {} dept {} cuename {} action {}",
+    DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} (debug name {}) received OSC message: build {} dept {} cuename {} action {}",
                       TCHAR_TO_ANSI(*GetHumanReadableName()),
                       TCHAR_TO_ANSI(*AActor::GetDebugName(this)),
                       TCHAR_TO_ANSI(*AddressDict["Build"]),
@@ -148,7 +155,11 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
     
     // Handle pausing/resuming
     FString theAction = AddressDict["Action"].ToLower();
+#if WITH_EDITOR
+    if (GetHumanReadableName().Contains(AddressDict["CueName"]))
+#else
     if (AddressDict["CueName"] == GetHumanReadableName())
+#endif
     {
         if (SequencePlayer)
         {
@@ -180,7 +191,9 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
     }
     else
     {
-        UE_LOG(LogTemp, Log, TEXT("This cue isn't for %s"), *GetHumanReadableName());
+        DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} ignoring cue {}",
+                          TCHAR_TO_ANSI(*GetHumanReadableName()),
+                          TCHAR_TO_ANSI(*AddressDict["CueName"]));
     }
 }
 
