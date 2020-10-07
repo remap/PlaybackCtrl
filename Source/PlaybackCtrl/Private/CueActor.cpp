@@ -373,9 +373,10 @@ float ACueActor::getStateLength(CueActorState state)
         return 0;
     }
 
-    len = getSequenceDurationSeconds(seq);
-    if (len == 0 && DataDict_.Contains(stateLengthKey))
+    if (DataDict_.Contains(stateLengthKey))
         len = FCString::Atof(*DataDict_[stateLengthKey]);
+    else
+        len = getSequenceDurationSeconds(seq);
 
     return len;
 }
