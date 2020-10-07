@@ -103,7 +103,7 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
 
     AddressDict.Add(TEXT("Build"), addressParts[1]);
     AddressDict.Add(TEXT("Department"), addressParts[2]);
-    AddressDict.Add(TEXT("CueName"), addressParts[3].Append("_C"));
+    AddressDict.Add(TEXT("CueName"), addressParts[3]);
     // use this block if there will be additional
     //  components in the naming hierarchy
 //    for (int32 Index = 3; Index < addressParts.Num() -1; ++Index)
@@ -130,7 +130,8 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
     
     // Handle pausing/resuming
     FString theAction = AddressDict["Action"].ToLower();
-    if (AddressDict["CueName"] == GetHumanReadableName())
+    //if (AddressDict["CueName"] == GetHumanReadableName())
+    if (GetHumanReadableName().Contains(AddressDict["CueName"]))
     {
         if (SequencePlayer)
         {
