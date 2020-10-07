@@ -11,16 +11,22 @@
 ACueActor::ACueActor()
     : _listener(this)
 {
-    FPlaybackCtrlModule* mod = FPlaybackCtrlModule::GetSharedInstance();
-    if (mod)
+    if (!GetHumanReadableName().Contains("Default__"))
     {
-        mod->RegisterReceiver(&_listener);
-        DLOG_TRACE("Created Cue actor {}", TCHAR_TO_ANSI(*AActor::GetDebugName(this)));
+        SetActorTickEnabled(true);
+        
+        FPlaybackCtrlModule* mod = FPlaybackCtrlModule::GetSharedInstance();
+        if (mod)
+        {
+            mod->RegisterReceiver(&_listener);
+            DLOG_TRACE("Created Cue actor {} ({})", TCHAR_TO_ANSI(*AActor::GetDebugName(this)),
+                       TCHAR_TO_ANSI(*GetHumanReadableName()));
+        }
+        else
+            UE_LOG(LogTemp, Log, TEXT("no module"));
+        
+        OnCueRx.AddDynamic(this, &ACueActor::OnCueReceived);
     }
-    else
-        UE_LOG(LogTemp, Log, TEXT("no module"));
-    
-    OnCueRx.AddDynamic(this, &ACueActor::OnCueReceived);
 }
 
 ACueActor::ACueActor(FVTableHelper & helper)
@@ -94,6 +100,9 @@ void ACueActor::BeginDestroy()
 
 void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp)
 {
+    DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} -- parsing cue",
+                      TCHAR_TO_ANSI(*GetHumanReadableName()));
+    
     // Parse OSC message
     // Address: Current naming: /<project>/<build>/<dept>/<cue name>/<action>
     FString oscAddress = Address.ToString();
@@ -128,6 +137,15 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
     runLen_ = getStateLength(CueActorState::Run);
     cueTotalLen_ = fadeInLen_ + fadeOutLen_ + runLen_;
     
+    DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} (debug name ) received OSC message: build {} dept {} cuename {} action {}",
+                      TCHAR_TO_ANSI(*GetHumanReadableName()),
+                      TCHAR_TO_ANSI(*AActor::GetDebugName(this)),
+                      TCHAR_TO_ANSI(*AddressDict["Build"]),
+                      TCHAR_TO_ANSI(*AddressDict["Department"]),
+                      TCHAR_TO_ANSI(*AddressDict["CueName"]),
+                      TCHAR_TO_ANSI(*AddressDict["Action"])
+                      );
+    
     // Handle pausing/resuming
     FString theAction = AddressDict["Action"].ToLower();
     if (AddressDict["CueName"] == GetHumanReadableName())
@@ -135,13 +153,21 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
         if (SequencePlayer)
         {
             if (theAction == "pause")
+                DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} -- cue pause",
+                                  TCHAR_TO_ANSI(*GetHumanReadableName()));
                 SequencePlayer->Pause();
             else if (theAction == "resume")
+                DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} -- cue resume",
+                                  TCHAR_TO_ANSI(*GetHumanReadableName()));
                 SequencePlayer->Play();
         }
         else if (theAction == "go")
+            DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} -- cue go",
+                              TCHAR_TO_ANSI(*GetHumanReadableName()));
             OnFadeInStart_Implementation();
         else if (theAction == "reset")
+            DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} -- cue reset",
+                              TCHAR_TO_ANSI(*GetHumanReadableName()));
             ResetCue();
     }
     else
