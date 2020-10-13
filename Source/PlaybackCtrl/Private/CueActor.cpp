@@ -67,11 +67,17 @@ void ACueActor::Tick(float DeltaTime)
             cueStateProgress_ = 1.;
         else
             cueStateProgress_ += d / stateLen;
-        cueProgress_ += d / cueTotalLen_;
+        
+        if (cueTotalLen_ == 0)
+            cueProgress_ = 1;
+        else
+            cueProgress_ += d / cueTotalLen_;
 
         if (cueStateProgress_ >= 1.)
         {
             cueStateProgress_ = 1.;
+            UE_LOG(LogTemp, Log, TEXT("Cue State Complete"));
+            DLOG_TRACE("calling end of state delegate");
             onStateEndDelegate_.ExecuteIfBound();
         }
         if (cueProgress_ >= 1.)
