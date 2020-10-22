@@ -47,22 +47,17 @@ void UPlaybackCtrlComponent::OnUnregister()
 
 void UPlaybackCtrlComponent::InvokeOnCueRxReplicated_Implementation(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp)
 {
-    UE_LOG(LogTemp, Log, TEXT("I am invoked"));
-    DLOG_INFO("I am invoked");
     if (GetNetMode() == NM_Standalone)
     {
-//        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("I'm a standalone in replicated func!"));
         UE_LOG(LogTemp, Log, TEXT("I'm a standalone in replicated func!"));
     }
     else if (GetNetMode() == NM_ListenServer)
     {
-//        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("I'm a Listen Server in replicated func!"));
         UE_LOG(LogTemp, Log, TEXT("I'm a Listen Server in replicated func!"));
     }
     else if (GetNetMode() == NM_Client)
         UE_LOG(LogTemp, Log, TEXT("I'm a client!"));
     
-    DLOG_TRACE(GetNetMode());
     OnCueReceived.Broadcast(Address, Data, SenderIp);
 }
 
