@@ -11,7 +11,8 @@
 ACueActor::ACueActor()
     : _listener(this)
 {
-    if (!GetHumanReadableName().Contains("Default__"))
+    if (!GetHumanReadableName().Contains("Default__") &&
+        GetHumanReadableName().Contains("_C"))
     {
         SetActorTickEnabled(true);
         
@@ -120,11 +121,11 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
     AddressDict.Add(TEXT("Build"), addressParts[1]);
     AddressDict.Add(TEXT("Department"), addressParts[2]);
     
-#if WITH_EDITOR
-    AddressDict.Add(TEXT("CueName"), addressParts[3].Append("_"));
-#else
-    AddressDict.Add(TEXT("CueName"), addressParts[3].Append("_C"));
-#endif
+//#if WITH_EDITOR
+//    AddressDict.Add(TEXT("CueName"), addressParts[3].Append("_"));
+//#else
+//    AddressDict.Add(TEXT("CueName"), addressParts[3].Append("_C"));
+//#endif
     
     // use this block if there will be additional
     //  components in the naming hierarchy
@@ -161,11 +162,11 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
     
     // Handle pausing/resuming
     FString theAction = AddressDict["Action"].ToLower();
-#if WITH_EDITOR
+//#if WITH_EDITOR
     if (GetHumanReadableName().Contains(AddressDict["CueName"]))
-#else
-    if (AddressDict["CueName"] == GetHumanReadableName())
-#endif
+//#else
+//    if (AddressDict["CueName"] == GetHumanReadableName())
+//#endif
     {
         if (SequencePlayer)
         {
