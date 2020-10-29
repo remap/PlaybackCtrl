@@ -12,7 +12,7 @@ ACueActor::ACueActor()
     : _listener(this)
 {
     if (!GetHumanReadableName().Contains("Default__") &&
-        GetHumanReadableName().Contains("_C"))
+        !GetHumanReadableName().Contains("_C"))
     {
         SetActorTickEnabled(true);
         
@@ -124,7 +124,7 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
 //#if WITH_EDITOR
 //    AddressDict.Add(TEXT("CueName"), addressParts[3].Append("_"));
 //#else
-//    AddressDict.Add(TEXT("CueName"), addressParts[3].Append("_C"));
+    AddressDict.Add(TEXT("CueName"), addressParts[3]);
 //#endif
     
     // use this block if there will be additional
