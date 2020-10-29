@@ -121,13 +121,15 @@ void FPlaybackCtrlModule::onPostWorldInitialization (UWorld *world)
     // the first game world Unreal creates is Untitled_0
     //    ¯\_(ツ)_/¯
     // let's skip it...
-    if (world && !world->GetMapName().Contains("Untitled"))
+    if (world && !world->GetMapName().Contains("Untitled_0"))
     {
         static once_flag flag;
         call_once(flag, [&](){
             oscDispatcherRegister(world);
-            SpawnCues(world);
         });
+        // disable automatic cue spawning because of this issue
+        // https://udn.unrealengine.com/s/question/0D52L00004scaJ6SAI/actors-are-not-spawned-using-uworldspawnactor-call-when-start-hosting
+//        SpawnCues(world);
     }
 }
 
@@ -159,14 +161,16 @@ void FPlaybackCtrlModule::SpawnCues(UWorld *world)
     TArray<TAssetSubclassOf<ACueActor>> ToSpawn;
     FString CueClassName = "Class'/Script/PlaybackCtrl.CueActor'";
     GetAllBlueprintSubclasses(ToSpawn, FName("ACueActor"), false, TEXT("/Game"), CueClassName);
-    //DLOG_TRACE("I got {} CueActor results to spawn in the Cue Manager", ToSpawn.Num());
+    
+    DLOG_TRACE("I got {} CueActor results to spawn", ToSpawn.Num());
+    
     for (auto& Cue : ToSpawn)
     {
         FActorSpawnParameters SpawnParams;
         SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 //        FString namestring = "Hope" + FString::FromInt(count);
         SpawnParams.Name = FName(*Cue.GetAssetName());
-        //DLOG_TRACE("my name is {}", TCHAR_TO_ANSI(*Cue.GetAssetName()));
+        DLOG_TRACE("spawn cue {}", TCHAR_TO_ANSI(*Cue.GetAssetName()));
         ACueActor* ActorRef = world->SpawnActor<ACueActor>(Cue.Get(), FVector(0,0,0), FRotator(0,0,0), SpawnParams);
     }
     
