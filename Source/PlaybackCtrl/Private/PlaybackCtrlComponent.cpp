@@ -67,3 +67,7 @@ void UPlaybackCtrlComponent::InvokeOnCueRxReplicated_Implementation(const FName 
 }
 
 
+FString UPlaybackCtrlComponent::GetListenerName() const
+{
+    return GetReadableName();
+}

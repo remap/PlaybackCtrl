@@ -7,9 +7,18 @@
 struct PLAYBACKCTRL_API IPlaybackCtrlInterface
 {
     virtual ~IPlaybackCtrlInterface()  {}
+    virtual FString GetListenerName() const = 0;
     virtual const FString & GetDepartmentFilter() const = 0;
     virtual const FString & GetBuildFilter() const = 0;
     virtual void SendEvent(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp) = 0;
+
+    friend bool operator ==(const IPlaybackCtrlInterface& a, const IPlaybackCtrlInterface& b)
+    {
+        //UE_LOG(LogTemp, Log, TEXT("Comparing a (%xld - %s) to b (%xld - %s)"), 
+        //    (int64)&a, *a.GetListenerName(), (int64)&b, *b.GetListenerName());
+
+        return &a  == &b || a.GetListenerName().Equals(b.GetListenerName());
+    }
 };
 
 
@@ -21,6 +30,11 @@ struct PLAYBACKCTRL_API BasicCueReceiver : IPlaybackCtrlInterface
 
     BasicCueReceiver(T * impl) : _impl(impl)
     {
+    }
+
+    FString GetListenerName() const final
+    {
+        return _impl->GetListenerName();
     }
 
     const FString & GetDepartmentFilter() const final
@@ -37,4 +51,6 @@ struct PLAYBACKCTRL_API BasicCueReceiver : IPlaybackCtrlInterface
    {
        _impl->SendEvent(Address, Data, SenderIp);
    }
+
+   
 };

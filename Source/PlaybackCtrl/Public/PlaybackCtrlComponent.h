@@ -32,9 +32,6 @@ public:
     FComponentCueReceivedSignature OnCueReceived;
     
     
-
-public:
-
     UPlaybackCtrlComponent();
     
 
@@ -51,47 +48,20 @@ public:
            return BuildFilter;
        }
     
-     void SendEvent(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp)
+    void SendEvent(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp)
     {
         InvokeOnCueRxReplicated(Address, Data, SenderIp);
-        // Parse OSC message
-        // Current naming: /<project>/<build>/<dept>/<cue name>/<action>
-//        FString oscAddress = Address.ToString();
-//        TArray<FString> addressParts;
-//        
-//        oscAddress.ParseIntoArray(addressParts, TEXT("/"), true);
-//        if (addressParts.IsValidIndex(0))
-//        {
-//            if (addressParts[0] != TEXT("HighCastle") || addressParts.Num() < 5)
-//            {
-//                DLOG_PLUGIN_DEBUG("Message doesn't meet address naming requirements.");
-//            }
-//        }
-//        else
-//            DLOG_PLUGIN_DEBUG("Message address is empty.");
-//        
-//       
-//        TMap<FString, FString> AddressDict;
-//        AddressDict.Add("Build", oscAddress[1]);
-//        AddressDict.Add("Department", oscAddress[2]);
-//        for (int32 Index = 3; Index < oscAddress.Num() -1; ++Index)
-//        {
-//            AddressDict.Add("CueName_" + Index.ToString(), oscAddress[Index]);
-//        }
-//        AddressDict.Add("Action", oscAddress.Last());
-        
     }
     
     UFUNCTION( NetMulticast, Reliable )
     void InvokeOnCueRxReplicated(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp);
-
+    
+    FString GetListenerName() const;
 
 private:
     void OnRegister() override;
 
     void OnUnregister() override;
    
-
-private:
     BasicCueReceiver<UPlaybackCtrlComponent> listener_;
 };

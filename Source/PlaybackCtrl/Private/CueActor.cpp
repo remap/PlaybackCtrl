@@ -2,6 +2,8 @@
 
 
 #include "CueActor.h"
+#include "Kismet/GameplayStatics.h"
+
 #include "PlaybackCtrl.h"
 #include "LevelSequencePlayer.h"
 #include "LevelSequenceActor.h"
@@ -11,28 +13,22 @@
 ACueActor::ACueActor()
     : _listener(this)
 {
-    if (!GetHumanReadableName().Contains("Default__"))
-    {
+    oscListener = !isDefaultObject();
+
+    if (!isDefaultObject())
         SetActorTickEnabled(true);
-        
-        FPlaybackCtrlModule* mod = FPlaybackCtrlModule::GetSharedInstance();
-        if (mod)
-        {
-            mod->RegisterReceiver(&_listener);
-            DLOG_TRACE("Created Cue actor {} ({})", TCHAR_TO_ANSI(*AActor::GetDebugName(this)),
-                       TCHAR_TO_ANSI(*GetHumanReadableName()));
-        }
-        else
-            UE_LOG(LogTemp, Log, TEXT("no module"));
-        
-        OnCueRx.AddDynamic(this, &ACueActor::OnCueReceived);
+
+    {
+        DLOG_TRACE("Created Cue actor {} ({}, type {})", TCHAR_TO_ANSI(*AActor::GetDebugName(this)),
+            TCHAR_TO_ANSI(*GetHumanReadableName()), TCHAR_TO_ANSI(*GetClass()->GetName()));
+        UE_LOG(LogTemp, Log, TEXT("Created Cue actor %s (%s type %s)"), *AActor::GetDebugName(this),
+            *GetHumanReadableName(), *GetClass()->GetName());
     }
 }
 
 ACueActor::ACueActor(FVTableHelper & helper)
     : _listener(this)
 {
-    
 }
 
 void ACueActor::Tick(float DeltaTime)
@@ -85,6 +81,24 @@ void ACueActor::BeginPlay()
     Super::BeginPlay();
 
     cueState_ = CueActorState::None;
+
+    if (oscListener)
+    {
+        FPlaybackCtrlModule* mod = FPlaybackCtrlModule::GetSharedInstance();
+        if (mod)
+        {
+            UE_LOG(LogTemp, Log, TEXT("CueActor %s OSC Listening..."),
+                *GetHumanReadableName());
+            mod->RegisterReceiver(&_listener);
+        }
+        else
+            UE_LOG(LogTemp, Log, TEXT("no module"));
+
+        OnCueRx.AddDynamic(this, &ACueActor::OnCueReceived);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("CueActor %s BeginPlay. Is General Purpose: %d"),
+        *GetHumanReadableName(), generalPurposeCue);
 }
 
 void ACueActor::BeginDestroy()
@@ -94,6 +108,8 @@ void ACueActor::BeginDestroy()
         mod->UnregisterReceiver(&_listener);
     else
         DLOG_TRACE("no module");
+
+    UE_LOG(LogTemp, Log, TEXT("CueActor %s BeginDestroy"), *GetHumanReadableName());
 
     Super::BeginDestroy();
 }
@@ -218,6 +234,9 @@ void ACueActor::OnFadeInEnd_Implementation()
 //    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Fade In End Implementation"));
     SequencePlayer = nullptr;
     OnRunStart_Implementation();   
+
+    DLOG_INFO("FadeIn End");
+    UE_LOG(LogTemp, Log, TEXT("FadeIn End"));
 }
 
 void ACueActor::OnRunStart_Implementation()
@@ -240,12 +259,17 @@ void ACueActor::OnRunEnd_Implementation()
     OnRunEnd(); // for BP
     SequencePlayer = nullptr;
     OnFadeOutStart_Implementation();
+
+    DLOG_INFO("Run End");
+    UE_LOG(LogTemp, Log, TEXT("Run End"));
 }
 
 void ACueActor::OnFadeOutStart_Implementation()
 {
     setState(CueActorState::FadeOut);
 
+    DLOG_INFO("FadeOut Start");
+    UE_LOG(LogTemp, Log, TEXT("FadeOut Start"));
     OnFadeOutStart(); //for BP
     if (GetFadeOutSeq())
         CueStateStart(GetFadeOutSeq(), "FadeOutLength", "OnFadeOutEnd_Implementation");
@@ -261,6 +285,10 @@ void ACueActor::OnFadeOutEnd_Implementation()
 
     setState(CueActorState::Finished);
     onStateEndDelegate_.Unbind();
+
+    DLOG_INFO("FadeOut End");
+    UE_LOG(LogTemp, Log, TEXT("FadeOut End"));
+    OnCueCompleted.Broadcast();
 }
 
 void ACueActor::CueStateStart(ULevelSequence* Seq, FString CueStateLength, FName EndCueState)
@@ -410,4 +438,53 @@ FString ACueActor::GetStringParam(FString name) {
         s = *DataDict_[name];
     }
     return s;
+}
+
+bool ACueActor::isDefaultObject() const
+{
+    return GetHumanReadableName().Contains("Default__");
+}
+
+FString ACueActor::GetListenerName() const
+{
+    return GetHumanReadableName();
+}
+
+void ACueActor::SpawnCue(const FName& Address, const TArray<FOscDataElemStruct>& Data, const FString& SenderIp)
+{
+    {
+        /*AActor* UWorld::SpawnActor
+        (
+            UClass * Class,
+            FName           InName,
+            FVector const* Location,
+            FRotator const* Rotation,
+            AActor * Template,
+            bool            bNoCollisionFail,
+            bool            bRemoteOwned,
+            AActor * Owner,
+            APawn * Instigator,
+            bool            bNoFail,
+            ULevel * OverrideLevel,
+            bool            bDeferConstruction
+        )*/
+
+        FTransform t = FTransform::Identity;
+        auto a = UGameplayStatics::BeginDeferredActorSpawnFromClass(this, this->GetClass(), t);
+        if (a)
+        {
+            Cast<ACueActor>(a)->oscListener = false;
+            // setup cleanup callback
+            Cast<ACueActor>(a)->OnCueCompleted.AddLambda([a]() {
+                UE_LOG(LogTemp, Log, TEXT("Destroying spawned actor %s"),
+                    *a->GetHumanReadableName());
+                a->Destroy();
+            });
+
+            UGameplayStatics::FinishSpawningActor(a, t);
+            
+            // forward OSC message
+            Cast<ACueActor>(a)->OnCueReceived(Address, Data, SenderIp);
+        }
+    }
 }
