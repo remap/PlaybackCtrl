@@ -99,7 +99,7 @@ void FPlaybackCtrlModule::onOscReceived(const FName & Address, const TArray<FOsc
     oscAddress.ParseIntoArray(addressParts, TEXT("/"), true);
     if (addressParts.IsValidIndex(0))
     {
-        if ((addressParts[0] != TEXT("HighCastle") && addressParts[0] != TEXT("Invencion")) || addressParts.Num() < 5)
+        if (addressParts.Num() < 5)
         {
             DLOG_PLUGIN_DEBUG("Message doesn't meet address naming requirements.");
         }
