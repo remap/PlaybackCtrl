@@ -119,7 +119,10 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
     DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} -- parsing cue {}",
                       TCHAR_TO_ANSI(*GetHumanReadableName()),
                       TCHAR_TO_ANSI(*Address.ToString()));
-    
+    UE_LOG(LogTemp, Log, TEXT("CueActor %s -- parsing cue %s"),
+        *GetHumanReadableName(), 
+        *Address.ToString());
+
     // Parse OSC message
     // Address: Current naming: /<project>/<build>/<dept>/<cue name>/<action>
     FString oscAddress = Address.ToString();
@@ -168,14 +171,17 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
                       TCHAR_TO_ANSI(*AddressDict["CueName"]),
                       TCHAR_TO_ANSI(*AddressDict["Action"])
                       );
+    UE_LOG(LogTemp, Log, TEXT("CueActor %s (debug name %s) received OSC message: build %s dept %s cuename %s action %s"),
+        *GetHumanReadableName(),
+        *AActor::GetDebugName(this),
+        *AddressDict["Build"],
+        *AddressDict["Department"],
+        *AddressDict["CueName"],
+        *AddressDict["Action"]);
     
     // Handle pausing/resuming
     FString theAction = AddressDict["Action"].ToLower();
-#if WITH_EDITOR
     if (GetHumanReadableName().Contains(AddressDict["CueName"]))
-#else
-    if (AddressDict["CueName"] == GetHumanReadableName())
-#endif
     {
         if (SequencePlayer)
         {
