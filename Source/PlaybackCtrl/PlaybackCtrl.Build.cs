@@ -50,7 +50,7 @@ public class PlaybackCtrl : ModuleRules
 				"Slate",
 				"SlateCore",
 				"depsPlaybackCtrl",
-                "OSC",
+                "UE4OSC",
                 "DDHelpers"
 				// ... add private dependencies that you statically link with here ...
 			}
