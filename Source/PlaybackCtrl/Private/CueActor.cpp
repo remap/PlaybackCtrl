@@ -132,13 +132,16 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
 
     AddressDict.Add(TEXT("Build"), addressParts[1]);
     AddressDict.Add(TEXT("Department"), addressParts[2]);
-    
+
+#if 0
 #if WITH_EDITOR
     AddressDict.Add(TEXT("CueName"), addressParts[3].Append("_"));
 #else
     AddressDict.Add(TEXT("CueName"), addressParts[3].Append("_C"));
 #endif
-    
+#else
+    AddressDict.Add(TEXT("CueName"), addressParts[3]);
+#endif
     // use this block if there will be additional
     //  components in the naming hierarchy
 //    for (int32 Index = 3; Index < addressParts.Num() -1; ++Index)
