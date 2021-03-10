@@ -2,6 +2,8 @@
 
 
 #include "CueActor.h"
+#include "Kismet/GameplayStatics.h"
+
 #include "PlaybackCtrl.h"
 #include "LevelSequencePlayer.h"
 #include "LevelSequenceActor.h"
@@ -11,29 +13,22 @@
 ACueActor::ACueActor()
     : _listener(this)
 {
-    if (!GetHumanReadableName().Contains("Default__") &&
-        !GetHumanReadableName().Contains("_C"))
-    {
+    oscListener = !isDefaultObject();
+
+    if (!isDefaultObject())
         SetActorTickEnabled(true);
-        
-        FPlaybackCtrlModule* mod = FPlaybackCtrlModule::GetSharedInstance();
-        if (mod)
-        {
-            mod->RegisterReceiver(&_listener);
-            DLOG_TRACE("Created Cue actor {} ({})", TCHAR_TO_ANSI(*AActor::GetDebugName(this)),
-                       TCHAR_TO_ANSI(*GetHumanReadableName()));
-        }
-        else
-            UE_LOG(LogTemp, Log, TEXT("no module"));
-        
-        OnCueRx.AddDynamic(this, &ACueActor::OnCueReceived);
+
+    {
+        DLOG_TRACE("Created Cue actor {} ({}, type {})", TCHAR_TO_ANSI(*AActor::GetDebugName(this)),
+            TCHAR_TO_ANSI(*GetHumanReadableName()), TCHAR_TO_ANSI(*GetClass()->GetName()));
+        UE_LOG(LogTemp, Log, TEXT("Created Cue actor %s (%s type %s)"), *AActor::GetDebugName(this),
+            *GetHumanReadableName(), *GetClass()->GetName());
     }
 }
 
 ACueActor::ACueActor(FVTableHelper & helper)
     : _listener(this)
 {
-    
 }
 
 void ACueActor::Tick(float DeltaTime)
@@ -68,7 +63,7 @@ void ACueActor::Tick(float DeltaTime)
             cueStateProgress_ = 1.;
         else
             cueStateProgress_ += d / stateLen;
-        
+
         if (cueTotalLen_ == 0)
             cueProgress_ = 1;
         else
@@ -83,7 +78,7 @@ void ACueActor::Tick(float DeltaTime)
         }
         if (cueProgress_ >= 1.)
             cueProgress_ = 1.;
-        
+
     }
 }
 
@@ -92,6 +87,24 @@ void ACueActor::BeginPlay()
     Super::BeginPlay();
 
     cueState_ = CueActorState::None;
+
+    if (oscListener)
+    {
+        FPlaybackCtrlModule* mod = FPlaybackCtrlModule::GetSharedInstance();
+        if (mod)
+        {
+            UE_LOG(LogTemp, Log, TEXT("CueActor %s OSC Listening..."),
+                *GetHumanReadableName());
+            mod->RegisterReceiver(&_listener);
+        }
+        else
+            UE_LOG(LogTemp, Log, TEXT("no module"));
+
+        OnCueRx.AddDynamic(this, &ACueActor::OnCueReceived);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("CueActor %s BeginPlay. Is General Purpose: %d"),
+        *GetHumanReadableName(), generalPurposeCue);
 }
 
 void ACueActor::BeginDestroy()
@@ -102,6 +115,8 @@ void ACueActor::BeginDestroy()
     else
         DLOG_TRACE("no module");
 
+    UE_LOG(LogTemp, Log, TEXT("CueActor %s BeginDestroy"), *GetHumanReadableName());
+
     Super::BeginDestroy();
 }
 
@@ -110,7 +125,10 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
     DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} -- parsing cue {}",
                       TCHAR_TO_ANSI(*GetHumanReadableName()),
                       TCHAR_TO_ANSI(*Address.ToString()));
-    
+    UE_LOG(LogTemp, Log, TEXT("CueActor %s -- parsing cue %s"),
+        *GetHumanReadableName(),
+        *Address.ToString());
+
     // Parse OSC message
     // Address: Current naming: /<project>/<build>/<dept>/<cue name>/<action>
     FString oscAddress = Address.ToString();
@@ -120,13 +138,16 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
 
     AddressDict.Add(TEXT("Build"), addressParts[1]);
     AddressDict.Add(TEXT("Department"), addressParts[2]);
-    
-//#if WITH_EDITOR
-//    AddressDict.Add(TEXT("CueName"), addressParts[3].Append("_"));
-//#else
+
+#if 0
+#if WITH_EDITOR
+    AddressDict.Add(TEXT("CueName"), addressParts[3].Append("_"));
+#else
+    AddressDict.Add(TEXT("CueName"), addressParts[3].Append("_C"));
+#endif
+#else
     AddressDict.Add(TEXT("CueName"), addressParts[3]);
-//#endif
-    
+#endif
     // use this block if there will be additional
     //  components in the naming hierarchy
 //    for (int32 Index = 3; Index < addressParts.Num() -1; ++Index)
@@ -144,13 +165,13 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
         DataDict.Add(d[0], d[1]);
     }
     DataDict_ = DataDict;
-    
+
     // save cue lengths
     fadeInLen_ = getStateLength(CueActorState::FadeIn);
     fadeOutLen_ = getStateLength(CueActorState::FadeOut);
     runLen_ = getStateLength(CueActorState::Run);
     cueTotalLen_ = fadeInLen_ + fadeOutLen_ + runLen_;
-    
+
     DLOG_MODULE_TRACE(PlaybackCtrl, "CueActor {} (debug name {}) received OSC message: build {} dept {} cuename {} action {}",
                       TCHAR_TO_ANSI(*GetHumanReadableName()),
                       TCHAR_TO_ANSI(*AActor::GetDebugName(this)),
@@ -159,14 +180,17 @@ void ACueActor::OnCueReceived(const FName & Address, const TArray<FOscDataElemSt
                       TCHAR_TO_ANSI(*AddressDict["CueName"]),
                       TCHAR_TO_ANSI(*AddressDict["Action"])
                       );
-    
+    UE_LOG(LogTemp, Log, TEXT("CueActor %s (debug name %s) received OSC message: build %s dept %s cuename %s action %s"),
+        *GetHumanReadableName(),
+        *AActor::GetDebugName(this),
+        *AddressDict["Build"],
+        *AddressDict["Department"],
+        *AddressDict["CueName"],
+        *AddressDict["Action"]);
+
     // Handle pausing/resuming
     FString theAction = AddressDict["Action"].ToLower();
-//#if WITH_EDITOR
     if (GetHumanReadableName().Contains(AddressDict["CueName"]))
-//#else
-//    if (AddressDict["CueName"] == GetHumanReadableName())
-//#endif
     {
         if (SequencePlayer)
         {
@@ -224,7 +248,10 @@ void ACueActor::OnFadeInEnd_Implementation()
 //    DLOG_INFO("Fade in End. TIME: {}", TCHAR_TO_ANSI(*FDateTime::Now().ToString()));
 //    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Fade In End Implementation"));
     SequencePlayer = nullptr;
-    OnRunStart_Implementation();   
+    OnRunStart_Implementation();
+
+    DLOG_INFO("FadeIn End");
+    UE_LOG(LogTemp, Log, TEXT("FadeIn End"));
 }
 
 void ACueActor::OnRunStart_Implementation()
@@ -237,7 +264,7 @@ void ACueActor::OnRunStart_Implementation()
 //    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Run Start Implementation"));
     if (GetRunSeq())
         CueStateStart(GetRunSeq(), "RunLength","OnRunEnd_Implementation");
-    else 
+    else
     //    OnRunEnd_Implementation();
         onStateEndDelegate_.BindUObject(this, &ACueActor::OnRunEnd_Implementation);
 }
@@ -247,12 +274,17 @@ void ACueActor::OnRunEnd_Implementation()
     OnRunEnd(); // for BP
     SequencePlayer = nullptr;
     OnFadeOutStart_Implementation();
+
+    DLOG_INFO("Run End");
+    UE_LOG(LogTemp, Log, TEXT("Run End"));
 }
 
 void ACueActor::OnFadeOutStart_Implementation()
 {
     setState(CueActorState::FadeOut);
 
+    DLOG_INFO("FadeOut Start");
+    UE_LOG(LogTemp, Log, TEXT("FadeOut Start"));
     OnFadeOutStart(); //for BP
     if (GetFadeOutSeq())
         CueStateStart(GetFadeOutSeq(), "FadeOutLength", "OnFadeOutEnd_Implementation");
@@ -268,6 +300,10 @@ void ACueActor::OnFadeOutEnd_Implementation()
 
     setState(CueActorState::Finished);
     onStateEndDelegate_.Unbind();
+
+    DLOG_INFO("FadeOut End");
+    UE_LOG(LogTemp, Log, TEXT("FadeOut End"));
+    OnCueCompleted.Broadcast();
 }
 
 void ACueActor::CueStateStart(ULevelSequence* Seq, FString CueStateLength, FName EndCueState)
@@ -288,7 +324,7 @@ void ACueActor::CueStateStart(ULevelSequence* Seq, FString CueStateLength, FName
         funcDelegate.BindUFunction(this, EndCueState);
         SequencePlayer->OnFinished.AddUnique(funcDelegate);
     }
-            
+
     if (SequencePlayer)
     {
 //        FScriptDelegate funcDelegate;
@@ -311,7 +347,7 @@ void ACueActor::ResetCue()
         Seq = GetFadeOutSeq();
     else
         return;
-        
+
     ALevelSequenceActor* LevelSequenceActor;
     SequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), Seq, FMovieSceneSequencePlaybackSettings(), LevelSequenceActor);
     SequencePlayer->PlayToFrame(0);
@@ -320,7 +356,7 @@ void ACueActor::ResetCue()
 //    SequencePlayer->Pause();
     setState(CueActorState::None);
     cueProgress_ = 0.;
-    
+
 }
 
 void ACueActor::setState(CueActorState state)
@@ -418,4 +454,53 @@ FString ACueActor::GetStringParam(FString name) {
         s = *DataDict_[name];
     }
     return s;
+}
+
+bool ACueActor::isDefaultObject() const
+{
+    return GetHumanReadableName().Contains("Default__");
+}
+
+FString ACueActor::GetListenerName() const
+{
+    return GetHumanReadableName();
+}
+
+void ACueActor::SpawnCue(const FName& Address, const TArray<FOscDataElemStruct>& Data, const FString& SenderIp)
+{
+    {
+        /*AActor* UWorld::SpawnActor
+        (
+            UClass * Class,
+            FName           InName,
+            FVector const* Location,
+            FRotator const* Rotation,
+            AActor * Template,
+            bool            bNoCollisionFail,
+            bool            bRemoteOwned,
+            AActor * Owner,
+            APawn * Instigator,
+            bool            bNoFail,
+            ULevel * OverrideLevel,
+            bool            bDeferConstruction
+        )*/
+
+        FTransform t = FTransform::Identity;
+        auto a = UGameplayStatics::BeginDeferredActorSpawnFromClass(this, this->GetClass(), t);
+        if (a)
+        {
+            Cast<ACueActor>(a)->oscListener = false;
+            // setup cleanup callback
+            Cast<ACueActor>(a)->OnCueCompleted.AddLambda([a]() {
+                UE_LOG(LogTemp, Log, TEXT("Destroying spawned actor %s"),
+                    *a->GetHumanReadableName());
+                a->Destroy();
+            });
+
+            UGameplayStatics::FinishSpawningActor(a, t);
+
+            // forward OSC message
+            Cast<ACueActor>(a)->OnCueReceived(Address, Data, SenderIp);
+        }
+    }
 }

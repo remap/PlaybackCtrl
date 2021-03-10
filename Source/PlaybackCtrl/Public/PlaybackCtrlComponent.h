@@ -32,9 +32,6 @@ public:
     FComponentCueReceivedSignature OnCueReceived;
     
     
-
-public:
-
     UPlaybackCtrlComponent();
     
 
@@ -51,21 +48,20 @@ public:
            return BuildFilter;
        }
     
-     void SendEvent(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp)
+    void SendEvent(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp)
     {
         InvokeOnCueRxReplicated(Address, Data, SenderIp);
     }
     
     UFUNCTION( NetMulticast, Reliable )
     void InvokeOnCueRxReplicated(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp);
-
+    
+    FString GetListenerName() const;
 
 private:
     void OnRegister() override;
 
     void OnUnregister() override;
    
-
-private:
     BasicCueReceiver<UPlaybackCtrlComponent> listener_;
 };

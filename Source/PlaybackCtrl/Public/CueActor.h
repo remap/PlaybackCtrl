@@ -16,6 +16,7 @@
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FComponentCueRxSignature, const FName &, Address, const TArray<FOscDataElemStruct> &, Data, const FString &, SenderIp);
+DECLARE_MULTICAST_DELEGATE(FOnCueCompletedSignature);
 DECLARE_DELEGATE(OnCueStateEndDelegate)
 
 UENUM(BlueprintType)
@@ -33,15 +34,8 @@ class PLAYBACKCTRL_API ACueActor : public AActor
     GENERATED_BODY()
     
 public:
-//    UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
     FString DepartmentFilter;
-//
-//    UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
     FString BuildFilter;
-    
-
-//    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Enum)
-//    EActionEnum ActionEnum;
     
     /** Add your fade in sequence here, if applicable */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlaybackCtrl)
@@ -61,8 +55,12 @@ public:
     UPROPERTY(EditAnywhere, Category=PlaybackCtrl)
     ULevelSequencePlayer* SequencePlayer;
 
-
+    UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = PlaybackCtrl)
+    bool generalPurposeCue;
     
+    UPROPERTY()
+    bool oscListener;
+
     // EVENTS
     UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category=PlaybackCtrl)
     void OnFadeInStart();
@@ -106,6 +104,7 @@ public:
     TMap<FString, FString> DataDict_;
     TArray<TAssetSubclassOf<UObject>> ToSpawn;
         
+    FOnCueCompletedSignature OnCueCompleted;
 
 public:
     // Sets default values for this actor's properties
@@ -141,7 +140,12 @@ public:
     
     void SendEvent(const FName & Address, const TArray<FOscDataElemStruct> & Data, const FString & SenderIp)
     {
-        OnCueRx.Broadcast(Address, Data, SenderIp);
+        UE_LOG(LogTemp, Log, TEXT("GOT OSC %s %d %xld"), *GetHumanReadableName(), generalPurposeCue, (int64)this);
+
+        if (generalPurposeCue)
+            SpawnCue(Address, Data, SenderIp);
+        else
+            OnCueRx.Broadcast(Address, Data, SenderIp);
     }
     
     UFUNCTION()
@@ -174,11 +178,15 @@ public:
 
     void setState(CueActorState state);
     float getSequenceDurationSeconds(ULevelSequence* seq) const;
+    FString GetListenerName() const;
+    void SpawnCue(const FName& Address, const TArray<FOscDataElemStruct>& Data, const FString& SenderIp);
 
 protected:
     void BeginDestroy() override;
     virtual void BeginPlay() override;
     void Tick(float DeltaTime) override;
+
+    bool isDefaultObject() const;
     
 private:
     BasicCueReceiver<ACueActor> _listener;
