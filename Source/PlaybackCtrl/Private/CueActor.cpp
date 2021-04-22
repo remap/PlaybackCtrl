@@ -100,7 +100,10 @@ void ACueActor::BeginPlay()
         else
             UE_LOG(LogTemp, Log, TEXT("no module"));
 
-        OnCueRx.AddDynamic(this, &ACueActor::OnCueReceived);
+        if (!OnCueRx.Contains(this, FName("OnCueReceived")))
+            OnCueRx.AddDynamic(this, &ACueActor::OnCueReceived);
+        else
+            UE_LOG(LogTemp, Log, TEXT("How did I get here?"));
     }
 
     UE_LOG(LogTemp, Log, TEXT("CueActor %s BeginPlay. Is General Purpose: %d"),
